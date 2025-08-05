@@ -572,6 +572,7 @@
         let currentPhase = 'setup'; // 'setup', 'concept', 'quiz', 'complete'
         let waitingForAnswer = false;
         let isProcessingMessage = false; // 메시지 처리 중복 방지
+        let isComposing = false; // 한글 입력기(IME) 조합 중 여부
 
         // DOM 요소들
         const chatMessages = document.getElementById('chatMessages');
@@ -691,10 +692,17 @@
         // 메시지 전송
         async function sendMessage() {
             // 중복 실행 방지
-            if (isProcessingMessage) return;
+            if (isProcessingMessage || isComposing) return;
             
             const message = chatInput.value.trim();
             if (!message || isOCRProcessing) return;
+            
+            // 비정상적으로 짧은 메시지 필터링 (의도하지 않은 입력 방지)
+            if (message.length === 1 && /[ㄱ-ㅎㅏ-ㅣ]/.test(message)) {
+                chatInput.value = '';
+                adjustTextareaHeight();
+                return;
+            }
             
             // 처리 중 플래그 설정
             isProcessingMessage = true;
@@ -1229,9 +1237,26 @@ ${concept}
                 }
             });
 
+            // 한글 입력기(IME) 이벤트 처리
+            chatInput.addEventListener('compositionstart', function(e) {
+                isComposing = true;
+            });
+
+            chatInput.addEventListener('compositionend', function(e) {
+                isComposing = false;
+                // composition 완료 후 잠시 대기 (브라우저 차이로 인한 타이밍 문제 해결)
+                setTimeout(() => {
+                    // 입력창에 불완전한 텍스트가 남아있다면 정리
+                    const currentValue = chatInput.value.trim();
+                    if (currentValue && currentValue !== e.data) {
+                        chatInput.value = e.data || '';
+                    }
+                }, 10);
+            });
+
             // 엔터 키 전송 (Shift+Enter는 줄바꿈)
             chatInput.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter' && !e.shiftKey && !isProcessingMessage) {
+                if (e.key === 'Enter' && !e.shiftKey && !isProcessingMessage && !isComposing) {
                     e.preventDefault();
                     sendMessage();
                 }
