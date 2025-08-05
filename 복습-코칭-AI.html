@@ -243,6 +243,12 @@
             border-color: #4f46e5;
         }
 
+        .chat-input:disabled {
+            background-color: #f9fafb;
+            color: #9ca3af;
+            cursor: not-allowed;
+        }
+
         .input-actions {
             position: absolute;
             right: 8px;
@@ -565,6 +571,7 @@
         let isOCRProcessing = false;
         let currentPhase = 'setup'; // 'setup', 'concept', 'quiz', 'complete'
         let waitingForAnswer = false;
+        let isProcessingMessage = false; // 메시지 처리 중복 방지
 
         // DOM 요소들
         const chatMessages = document.getElementById('chatMessages');
@@ -683,20 +690,43 @@
 
         // 메시지 전송
         async function sendMessage() {
+            // 중복 실행 방지
+            if (isProcessingMessage) return;
+            
             const message = chatInput.value.trim();
             if (!message || isOCRProcessing) return;
             
-            // 사용자 메시지 추가
-            addMessage(message, true);
-            chatInput.value = '';
-            adjustTextareaHeight();
+            // 처리 중 플래그 설정
+            isProcessingMessage = true;
             
-            // 현재 단계에 따른 처리
-            if (currentPhase === 'concept') {
-                await handleConceptInput(message);
-            } else if (currentPhase === 'quiz') {
-                // 퀴즈 진행 중에는 항상 답변 처리 (첫 번째 답변이든 추가 질문이든)
-                await handleAnswerInput(message);
+            // UI 상태 업데이트 (처리 중)
+            sendButton.disabled = true;
+            chatInput.disabled = true;
+            
+            try {
+                // 사용자 메시지 추가
+                addMessage(message, true);
+                
+                // 입력창을 즉시 초기화
+                chatInput.value = '';
+                adjustTextareaHeight();
+                
+                // 현재 단계에 따른 처리
+                if (currentPhase === 'concept') {
+                    await handleConceptInput(message);
+                } else if (currentPhase === 'quiz') {
+                    // 퀴즈 진행 중에는 항상 답변 처리 (첫 번째 답변이든 추가 질문이든)
+                    await handleAnswerInput(message);
+                }
+            } catch (error) {
+                console.error('Message processing error:', error);
+                addMessage('메시지 처리 중 오류가 발생했어요. 다시 시도해주세요. 😅');
+            } finally {
+                // 처리 완료 후 플래그 해제 및 UI 상태 복원
+                isProcessingMessage = false;
+                sendButton.disabled = false;
+                chatInput.disabled = false;
+                chatInput.focus(); // 입력창에 다시 포커스
             }
         }
 
@@ -1193,11 +1223,15 @@ ${concept}
             }
 
             // 전송 버튼 클릭
-            sendButton.addEventListener('click', sendMessage);
+            sendButton.addEventListener('click', function() {
+                if (!isProcessingMessage) {
+                    sendMessage();
+                }
+            });
 
             // 엔터 키 전송 (Shift+Enter는 줄바꿈)
             chatInput.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter' && !e.shiftKey) {
+                if (e.key === 'Enter' && !e.shiftKey && !isProcessingMessage) {
                     e.preventDefault();
                     sendMessage();
                 }
