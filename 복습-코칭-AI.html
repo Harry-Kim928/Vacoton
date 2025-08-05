@@ -697,10 +697,10 @@
             const message = chatInput.value.trim();
             if (!message || isOCRProcessing) return;
             
-            // 비정상적으로 짧은 메시지 필터링 (의도하지 않은 입력 방지)
-            if (message.length === 1 && /[ㄱ-ㅎㅏ-ㅣ]/.test(message)) {
+            // 불완전한 한글 자모음만 필터링 (완성된 글자나 숫자, 영문은 허용)
+            if (message.length === 1 && /^[ㄱ-ㅎㅏ-ㅣ]$/.test(message)) {
                 chatInput.value = '';
-                adjustTextareaHeight();
+                adjustTextareaHeight();  
                 return;
             }
             
@@ -1244,14 +1244,7 @@ ${concept}
 
             chatInput.addEventListener('compositionend', function(e) {
                 isComposing = false;
-                // composition 완료 후 잠시 대기 (브라우저 차이로 인한 타이밍 문제 해결)
-                setTimeout(() => {
-                    // 입력창에 불완전한 텍스트가 남아있다면 정리
-                    const currentValue = chatInput.value.trim();
-                    if (currentValue && currentValue !== e.data) {
-                        chatInput.value = e.data || '';
-                    }
-                }, 10);
+                // composition 완료 후 자연스럽게 처리 (값 덮어쓰기 제거)
             });
 
             // 엔터 키 전송 (Shift+Enter는 줄바꿈)
