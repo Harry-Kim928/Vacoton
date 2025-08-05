@@ -563,8 +563,39 @@
     </div>
 
     <script>
+        // OpenAI 클라이언트 래퍼 클래스
+        class OpenAIClient {
+            constructor(apiKey) {
+                this.apiKey = apiKey;
+                this.baseURL = 'https://api.openai.com/v1';
+            }
+
+            async chat_completions_create(options) {
+                const response = await fetch(`${this.baseURL}/chat/completions`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${this.apiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: options.model,
+                        messages: options.messages,
+                        max_tokens: options.max_tokens,
+                        temperature: options.temperature
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API 호출 실패: ${response.status}`);
+                }
+
+                return await response.json();
+            }
+        }
+
         // 전역 변수
         let apiKey = '';
+        let openai = null;
         let questions = [];
         let currentQuestionIndex = 0;
         let userConcept = '';
@@ -667,6 +698,7 @@
             }
             
             apiKey = key;
+            openai = new OpenAIClient(key);
             localStorage.setItem('openai_api_key', key);
             
             // 모달 닫기
@@ -865,31 +897,19 @@
 2-4문장 정도로 간결하고 명확하게 답변해주세요.`;
 
             try {
-                const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${apiKey}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        model: 'gpt-3.5-turbo',
-                        messages: [
-                            {
-                                role: 'user',
-                                content: prompt
-                            }
-                        ],
-                        max_tokens: 500,
-                        temperature: 0.7
-                    })
+                const response = await openai.chat_completions_create({
+                    model: 'gpt-3.5-turbo',
+                    messages: [
+                        {
+                            role: 'user',
+                            content: prompt
+                        }
+                    ],
+                    max_tokens: 500,
+                    temperature: 0.7
                 });
 
-                if (!response.ok) {
-                    throw new Error(`API 호출 실패: ${response.status}`);
-                }
-
-                const data = await response.json();
-                return data.choices[0].message.content;
+                return response.choices[0].message.content;
                 
             } catch (error) {
                 console.error('GPT API Error:', error);
@@ -952,45 +972,33 @@
             try {
                 const base64Image = await fileToBase64(file);
                 
-                const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${apiKey}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        model: 'gpt-4o-mini',
-                        messages: [
-                            {
-                                role: 'user',
-                                content: [
-                                    {
-                                        type: 'text',
-                                        text: `이 이미지에서 다루는 핵심 수학 개념이 무엇인지 간단히 알려주세요. 
+                const response = await openai.chat_completions_create({
+                    model: 'gpt-4o-mini',
+                    messages: [
+                        {
+                            role: 'user',
+                            content: [
+                                {
+                                    type: 'text',
+                                    text: `이 이미지에서 다루는 핵심 수학 개념이 무엇인지 간단히 알려주세요. 
 
 예시: "이차함수의 그래프", "미분의 정의", "삼각함수의 덧셈공식", "극한의 성질" 등
 
 핵심 개념명만 간단히 답해주세요.`
-                                    },
-                                    {
-                                        type: 'image_url',
-                                        image_url: {
-                                            url: base64Image
-                                        }
+                                },
+                                {
+                                    type: 'image_url',
+                                    image_url: {
+                                        url: base64Image
                                     }
-                                ]
-                            }
-                        ],
-                        max_tokens: 100
-                    })
+                                }
+                            ]
+                        }
+                    ],
+                    max_tokens: 100
                 });
 
-                if (!response.ok) {
-                    throw new Error(`Vision API 실패: ${response.status}`);
-                }
-
-                const data = await response.json();
-                const analysisResult = data.choices[0].message.content.trim();
+                const analysisResult = response.choices[0].message.content.trim();
                 
                 removeTypingIndicator();
                 
@@ -1114,31 +1122,19 @@ ${concept}
 각 질문은 학생이 개념을 말로 설명하고, 비교하고, 예외 상황을 찾아보게 만드는 질문이어야 합니다.`;
 
             try {
-                const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${apiKey}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        model: 'gpt-3.5-turbo',
-                        messages: [
-                            {
-                                role: 'user',
-                                content: prompt
-                            }
-                        ],
-                        max_tokens: 1000,
-                        temperature: 0.7
-                    })
+                const response = await openai.chat_completions_create({
+                    model: 'gpt-3.5-turbo',
+                    messages: [
+                        {
+                            role: 'user',
+                            content: prompt
+                        }
+                    ],
+                    max_tokens: 1000,
+                    temperature: 0.7
                 });
 
-                if (!response.ok) {
-                    throw new Error(`API 호출 실패: ${response.status}`);
-                }
-
-                const data = await response.json();
-                const content = data.choices[0].message.content;
+                const content = response.choices[0].message.content;
                 
                 // 질문 추출
                 const questionLines = content.split('\n').filter(line => 
@@ -1171,31 +1167,19 @@ ${concept}
 학생이 "아, 그렇구나!" 하고 이해할 수 있도록 친근하게 설명해주세요.`;
 
             try {
-                const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${apiKey}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        model: 'gpt-3.5-turbo',
-                        messages: [
-                            {
-                                role: 'user',
-                                content: prompt
-                            }
-                        ],
-                        max_tokens: 500,
-                        temperature: 0.7
-                    })
+                const response = await openai.chat_completions_create({
+                    model: 'gpt-3.5-turbo',
+                    messages: [
+                        {
+                            role: 'user',
+                            content: prompt
+                        }
+                    ],
+                    max_tokens: 500,
+                    temperature: 0.7
                 });
 
-                if (!response.ok) {
-                    throw new Error(`API 호출 실패: ${response.status}`);
-                }
-
-                const data = await response.json();
-                return data.choices[0].message.content;
+                return response.choices[0].message.content;
                 
             } catch (error) {
                 console.error('GPT API Error:', error);
@@ -1226,6 +1210,7 @@ ${concept}
             if (savedApiKey) {
                 document.getElementById('apiKeyInput').value = savedApiKey;
                 apiKey = savedApiKey;
+                openai = new OpenAIClient(savedApiKey);
                 apiModal.style.display = 'none';
                 addWelcomeMessages();
             }
