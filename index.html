@@ -36,6 +36,92 @@
             padding: 30px;
         }
         
+        /* 도넛 차트 스타일 */
+        .donut-chart {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 20px auto;
+            border-radius: 50%;
+        }
+        
+        .donut-segment {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            clip-path: polygon(50% 50%, 50% 0%, 100% 0%, 100% 100%, 50% 100%);
+        }
+        
+        .donut-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120px;
+            height: 120px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #2d3748;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        /* 리포트 결과 주황색 테마 */
+        .report-summary-card {
+            background: linear-gradient(135deg, #ff8a50 0%, #ff6b35 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 25px rgba(255, 107, 53, 0.3);
+        }
+        
+        .report-chart-card {
+            background: linear-gradient(135deg, #fff5f0 0%, #ffe8d6 100%);
+            border: 2px solid #ff8a50;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 25px rgba(255, 138, 80, 0.2);
+        }
+        
+        .report-representative-card {
+            background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(255, 107, 53, 0.4);
+        }
+        
+        .subject-legend {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+        }
+        
         .header h1 {
             font-size: 32px;
             margin-bottom: 10px;
@@ -135,17 +221,17 @@
             
             <div id="error-message" style="background: #fed7d7; color: #c53030; padding: 10px; border-radius: 8px; margin-top: 10px; display: none;"></div>
             
-            <button onclick="generateReport()" style="width: 100%; padding: 15px; background: linear-gradient(45deg, #667eea, #764ba2); color: white; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 20px;">
+            <button onclick="generateReport()" style="width: 100%; padding: 15px; background: linear-gradient(45deg, #ff8a50, #ff6b35); color: white; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 20px; box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);">
                 📄 리포트 생성
             </button>
         </div>
         
         <div id="report-results" style="display: none;">
-            <div id="report-summary" style="background: white; border-radius: 15px; padding: 30px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);"></div>
-            <div id="chart-container" style="background: white; border-radius: 15px; padding: 30px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);"></div>
-            <div id="representative-section" style="background: white; border-radius: 15px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center;"></div>
+            <div id="report-summary" class="report-summary-card"></div>
+            <div id="chart-container" class="report-chart-card"></div>
+            <div id="representative-section" class="report-representative-card"></div>
             
-            <button onclick="goBackToInput()" style="width: 100%; padding: 15px; background: linear-gradient(45deg, #a0aec0, #718096); color: white; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 20px;">
+            <button onclick="goBackToInput()" style="width: 100%; padding: 15px; background: linear-gradient(45deg, #f7931e, #ff8a50); color: white; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 20px; box-shadow: 0 4px 15px rgba(247, 147, 30, 0.3);">
                 🔙 다시 입력하기
             </button>
         </div>
@@ -232,40 +318,63 @@
                 </div>
             `;
             
-            // 차트 생성
+            // 도넛 차트 생성
             const chartContainer = document.getElementById('chart-container');
-            chartContainer.innerHTML = '<h3 style="margin-bottom: 20px; color: #4a5568;">📈 과목별 분석</h3>';
+            chartContainer.innerHTML = '<h3 style="margin-bottom: 20px; color: #ff6b35; text-align: center;">📈 과목별 분석</h3>';
             
-            Object.entries(subjects).forEach(([subject, percent]) => {
-                if (percent > 0) {
-                    const questionCount = Math.round(totalQuestions * percent / 100);
-                    const subjectStudyTime = (studyHours * percent / 100).toFixed(1);
-                    const colors = { 수학: '#ff6b6b', 영어: '#74b9ff', 과학: '#00b894', 국어: '#fdcb6e', 사회: '#a29bfe' };
-                    
-                    const chartItem = document.createElement('div');
-                    chartItem.innerHTML = `
-                        <div style="display: flex; align-items: center; margin-bottom: 15px; gap: 15px;">
-                            <div style="min-width: 80px; font-weight: bold; text-align: right;">${subject}</div>
-                            <div style="flex: 1; background: #e2e8f0; border-radius: 10px; height: 30px; position: relative; overflow: hidden;">
-                                <div style="height: 100%; width: ${percent}%; background: ${colors[subject]}; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px;">
-                                    ${percent}%
+            const colors = { 수학: '#ff6b6b', 영어: '#4ecdc4', 과학: '#45b7d1', 국어: '#f7b801', 사회: '#5f27cd' };
+            const activeSubjects = Object.entries(subjects).filter(([_, percent]) => percent > 0);
+            
+            if (activeSubjects.length > 0) {
+                // 도넛 차트 생성
+                let cumulativePercent = 0;
+                const gradientStops = [];
+                
+                activeSubjects.forEach(([subject, percent]) => {
+                    const startPercent = cumulativePercent;
+                    const endPercent = cumulativePercent + percent;
+                    gradientStops.push(`${colors[subject]} ${startPercent}% ${endPercent}%`);
+                    cumulativePercent = endPercent;
+                });
+                
+                const donutChart = document.createElement('div');
+                donutChart.innerHTML = `
+                    <div style="text-align: center;">
+                        <div class="donut-chart" style="background: conic-gradient(${gradientStops.join(', ')});">
+                            <div class="donut-center">
+                                <div>
+                                    <div style="font-size: 14px; color: #666;">총 질문</div>
+                                    <div style="font-size: 18px; font-weight: bold;">${totalQuestions}개</div>
                                 </div>
                             </div>
-                            <div style="min-width: 80px; text-align: center; font-weight: bold;">
-                                ${questionCount}개<br><small>${subjectStudyTime}시간</small>
-                            </div>
                         </div>
-                    `;
-                    chartContainer.appendChild(chartItem);
-                }
-            });
+                        
+                        <div class="subject-legend">
+                            ${activeSubjects.map(([subject, percent]) => {
+                                const questionCount = Math.round(totalQuestions * percent / 100);
+                                const subjectStudyTime = (studyHours * percent / 100).toFixed(1);
+                                return `
+                                    <div class="legend-item">
+                                        <div class="legend-color" style="background: ${colors[subject]};"></div>
+                                        <div>
+                                            <strong>${subject}</strong><br>
+                                            <small>${percent}% (${questionCount}개, ${subjectStudyTime}시간)</small>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+                chartContainer.appendChild(donutChart);
+            }
             
             // 대표 인물 섹션 생성
             document.getElementById('representative-section').innerHTML = `
-                <h3 style="font-size: 1.3em; margin-bottom: 15px; color: #2d3748;">🏆 대표 과목: ${maxSubject} (${subjects[maxSubject]}%)</h3>
+                <h3 style="font-size: 1.3em; margin-bottom: 15px; color: white;">🏆 대표 과목: ${maxSubject} (${subjects[maxSubject]}%)</h3>
                 <div style="font-size: 3em; margin: 10px 0;">${representative.emoji}</div>
-                <div style="font-size: 1.5em; font-weight: bold; margin-bottom: 10px; color: #2d3748;">${representative.name}</div>
-                <div style="font-size: 1.1em; color: #4a5568;">${representative.description}</div>
+                <div style="font-size: 1.5em; font-weight: bold; margin-bottom: 10px; color: white;">${representative.name}</div>
+                <div style="font-size: 1.1em; color: #ffe8d6;">${representative.description}</div>
             `;
             
             // 리포트 결과 표시
