@@ -122,6 +122,33 @@
             border-radius: 50%;
         }
         
+        /* 페이지 전환 스타일 */
+        .page {
+            display: none;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        .page.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .input-page {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .report-page {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #fff5f0 0%, #ffe8d6 100%);
+            padding: 20px 0;
+        }
+        
         .header h1 {
             font-size: 32px;
             margin-bottom: 10px;
@@ -169,64 +196,75 @@
     </style>
 </head>
 <body>
-    <div class="app-container">
-        <div class="header">
-            <h1>📊 학습 데이터 분석기</h1>
-            <p>학습 데이터를 입력하고 나만의 리포트를 생성해보세요!</p>
-        </div>
-            
-        <div class="report-input-section">
-            <h2 style="font-size: 1.5em; margin-bottom: 20px; color: #4a5568;">📊 백엔드 입력</h2>
-            
-            <div class="form-group">
-                <label for="total-questions">누적 질문 횟수:</label>
-                <input type="number" id="total-questions" min="1" placeholder="예: 150" style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 16px;">
+    <!-- 입력 페이지 -->
+    <div id="input-page" class="page active input-page">
+        <div class="app-container">
+            <div class="header">
+                <h1>📊 학습 데이터 분석기</h1>
+                <p>학습 데이터를 입력하고 나만의 리포트를 생성해보세요!</p>
             </div>
-            
-            <div class="form-group">
-                <label for="study-hours">누적 공부시간 (시간):</label>
-                <input type="number" id="study-hours" min="0" step="0.5" placeholder="예: 25.5" style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 16px;">
-            </div>
-            
-            <div class="form-group">
-                <label>과목별 질문 비율 (%):</label>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <label style="min-width: 60px; margin-bottom: 0; font-size: 14px;">수학:</label>
-                        <input type="number" id="math-percent" min="0" max="100" placeholder="0" style="flex: 1; padding: 8px; border: 2px solid #e2e8f0; border-radius: 8px;">
-                        <span>%</span>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <label style="min-width: 60px; margin-bottom: 0; font-size: 14px;">영어:</label>
-                        <input type="number" id="english-percent" min="0" max="100" placeholder="0" style="flex: 1; padding: 8px; border: 2px solid #e2e8f0; border-radius: 8px;">
-                        <span>%</span>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <label style="min-width: 60px; margin-bottom: 0; font-size: 14px;">과학:</label>
-                        <input type="number" id="science-percent" min="0" max="100" placeholder="0" style="flex: 1; padding: 8px; border: 2px solid #e2e8f0; border-radius: 8px;">
-                        <span>%</span>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <label style="min-width: 60px; margin-bottom: 0; font-size: 14px;">국어:</label>
-                        <input type="number" id="korean-percent" min="0" max="100" placeholder="0" style="flex: 1; padding: 8px; border: 2px solid #e2e8f0; border-radius: 8px;">
-                        <span>%</span>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <label style="min-width: 60px; margin-bottom: 0; font-size: 14px;">사회:</label>
-                        <input type="number" id="social-percent" min="0" max="100" placeholder="0" style="flex: 1; padding: 8px; border: 2px solid #e2e8f0; border-radius: 8px;">
-                        <span>%</span>
+                
+            <div class="report-input-section">
+                <h2 style="font-size: 1.5em; margin-bottom: 20px; color: #4a5568;">📊 백엔드 입력</h2>
+                
+                <div class="form-group">
+                    <label for="total-questions">누적 질문 횟수:</label>
+                    <input type="number" id="total-questions" min="1" placeholder="예: 150" style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 16px;">
+                </div>
+                
+                <div class="form-group">
+                    <label for="study-hours">누적 공부시간 (시간):</label>
+                    <input type="number" id="study-hours" min="0" step="0.5" placeholder="예: 25.5" style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 16px;">
+                </div>
+                
+                <div class="form-group">
+                    <label>과목별 질문 비율 (%):</label>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <label style="min-width: 60px; margin-bottom: 0; font-size: 14px;">수학:</label>
+                            <input type="number" id="math-percent" min="0" max="100" placeholder="0" style="flex: 1; padding: 8px; border: 2px solid #e2e8f0; border-radius: 8px;">
+                            <span>%</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <label style="min-width: 60px; margin-bottom: 0; font-size: 14px;">영어:</label>
+                            <input type="number" id="english-percent" min="0" max="100" placeholder="0" style="flex: 1; padding: 8px; border: 2px solid #e2e8f0; border-radius: 8px;">
+                            <span>%</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <label style="min-width: 60px; margin-bottom: 0; font-size: 14px;">과학:</label>
+                            <input type="number" id="science-percent" min="0" max="100" placeholder="0" style="flex: 1; padding: 8px; border: 2px solid #e2e8f0; border-radius: 8px;">
+                            <span>%</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <label style="min-width: 60px; margin-bottom: 0; font-size: 14px;">국어:</label>
+                            <input type="number" id="korean-percent" min="0" max="100" placeholder="0" style="flex: 1; padding: 8px; border: 2px solid #e2e8f0; border-radius: 8px;">
+                            <span>%</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <label style="min-width: 60px; margin-bottom: 0; font-size: 14px;">사회:</label>
+                            <input type="number" id="social-percent" min="0" max="100" placeholder="0" style="flex: 1; padding: 8px; border: 2px solid #e2e8f0; border-radius: 8px;">
+                            <span>%</span>
+                        </div>
                     </div>
                 </div>
+                
+                <div id="error-message" style="background: #fed7d7; color: #c53030; padding: 10px; border-radius: 8px; margin-top: 10px; display: none;"></div>
+                
+                <button onclick="generateReport()" style="width: 100%; padding: 15px; background: linear-gradient(45deg, #ff8a50, #ff6b35); color: white; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 20px; box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);">
+                    📄 리포트 생성
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 리포트 페이지 -->
+    <div id="report-page" class="page report-page">
+        <div class="app-container">
+            <div class="header">
+                <h1>📊 학습 리포트</h1>
+                <p>생성된 리포트를 확인해보세요!</p>
             </div>
             
-            <div id="error-message" style="background: #fed7d7; color: #c53030; padding: 10px; border-radius: 8px; margin-top: 10px; display: none;"></div>
-            
-            <button onclick="generateReport()" style="width: 100%; padding: 15px; background: linear-gradient(45deg, #ff8a50, #ff6b35); color: white; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 20px; box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);">
-                📄 리포트 생성
-            </button>
-        </div>
-        
-        <div id="report-results" style="display: none;">
             <div id="report-summary" class="report-summary-card"></div>
             <div id="chart-container" class="report-chart-card"></div>
             <div id="representative-section" class="report-representative-card"></div>
@@ -246,6 +284,19 @@
             국어: { name: "세종대왕", emoji: "👑", description: "한글 창제의 성군" },
             사회: { name: "링컨", emoji: "🇺🇸", description: "민주주의의 수호자" }
         };
+
+        // 페이지 전환 함수들
+        function showInputPage() {
+            document.getElementById('input-page').classList.add('active');
+            document.getElementById('report-page').classList.remove('active');
+            window.scrollTo(0, 0);
+        }
+
+        function showReportPage() {
+            document.getElementById('input-page').classList.remove('active');
+            document.getElementById('report-page').classList.add('active');
+            window.scrollTo(0, 0);
+        }
 
         function validateReportInputs() {
             const totalQuestions = parseInt(document.getElementById('total-questions').value);
@@ -377,14 +428,12 @@
                 <div style="font-size: 1.1em; color: #ffe8d6;">${representative.description}</div>
             `;
             
-            // 리포트 결과 표시
-            document.getElementById('report-results').style.display = 'block';
-            document.getElementById('report-results').scrollIntoView({ behavior: 'smooth' });
+            // 리포트 페이지로 전환
+            showReportPage();
         }
 
         function goBackToInput() {
-            document.getElementById('report-results').style.display = 'none';
-            window.scrollTo(0, 0);
+            showInputPage();
         }
     </script>
 </body>
