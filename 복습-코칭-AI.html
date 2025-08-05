@@ -6,6 +6,25 @@
     <title>Vision AI 복습 코칭 - 채팅형 학습</title>
     <!-- Tesseract.js for OCR -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+    
+    <!-- MathJax for LaTeX rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            }
+        };
+    </script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
         
@@ -649,6 +668,12 @@
             
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            // MathJax 렌더링 트리거
+            if (window.MathJax) {
+                MathJax.typesetPromise([messageDiv]).catch((err) => console.log('MathJax error:', err));
+            }
+            
             return messageDiv;
         }
 
@@ -905,7 +930,12 @@
 - 수식을 자연스럽게 설명에 포함시키세요
 - 비유나 그래프 설명을 활용하세요  
 - 학생이 이해할 수 있도록 단계별로 설명하세요
-- 마지막에 반드시 "더 궁금한 점이 있으면 언제든 물어보세요"를 추가하세요`;
+- 마지막에 반드시 "더 궁금한 점이 있으면 언제든 물어보세요"를 추가하세요
+
+**✅ 수학 기호 사용법:**
+- 모든 수학식은 $...$ 안에 작성하세요
+- 예: $\\triangle ABC$, $\\angle A = 60^\\circ$, $f(x) = x^2 + 1$
+- 분수: $\\frac{a}{b}$, 제곱근: $\\sqrt{x}$, 극한: $\\lim_{x \\to 0} f(x)$`;
 
             try {
                 const response = await openai.chat_completions_create({
@@ -1174,20 +1204,30 @@ ${concept}
 - 학생이 직접 계산해서 모순을 발견하게 하세요
 - 각 질문마다 서로 다른 수학적 접근법을 요구하세요
 
+**✅ 수학 기호 사용법:**
+- 삼각형: $\\triangle ABC$
+- 각도: $\\angle ABC = 30°$ 또는 $\\angle ABC = 30^\\circ$
+- 함수: $f(x) = x^2 + 2x + 1$
+- 분수: $\\frac{a}{b}$
+- 제곱근: $\\sqrt{x}$
+- 극한: $\\lim_{x \\to 0} f(x)$
+- 시그마: $\\sum_{i=1}^n a_i$
+- 모든 수학식은 $...$ 또는 $$...$$ 안에 작성하세요
+
 **✅ 수학 분야별 질문 예시:**
 
 **이등변삼각형/기하 문제:**
-- "삼각형 ABC에서 AB = AC = 5, BC = 8이고, 꼭짓각 A가 120°라고 할 때, 이 조건이 왜 성립하지 않는지 설명해보세요."
-- "이등변삼각형에서 밑각이 70°이고 꼭짓각이 50°라고 할 때, 어떤 모순이 발생할까요?"
+- "$\\triangle ABC$에서 $AB = AC = 5$, $BC = 8$이고, 꼭짓각 $\\angle A = 120^\\circ$라고 할 때, 이 조건이 왜 성립하지 않는지 설명해보세요."
+- "이등변삼각형에서 밑각이 $70^\\circ$이고 꼭짓각이 $50^\\circ$라고 할 때, 어떤 모순이 발생할까요?"
 
 **이차함수 문제:**
-- "이차함수 y = x² + 2x + 5와 직선 y = 3x + 1이 두 점에서 만난다고 가정할 때, 어떤 모순이 발생할까요?"
+- "이차함수 $y = x^2 + 2x + 5$와 직선 $y = 3x + 1$이 두 점에서 만난다고 가정할 때, 어떤 모순이 발생할까요?"
 
 **삼각함수 문제:**
-- "sin θ = 0.8, cos θ = 0.7이라고 할 때, 이 조건이 왜 불가능한지 설명해보세요."
+- "$\\sin \\theta = 0.8$, $\\cos \\theta = 0.7$이라고 할 때, 이 조건이 왜 불가능한지 설명해보세요."
 
 **극한 문제:**
-- "함수 f(x) = (x²-1)/(x-1)에서 x→1일 때 극한값이 0이라고 할 때, 이 주장의 문제점은 무엇일까요?"
+- "함수 $f(x) = \\frac{x^2-1}{x-1}$에서 $\\lim_{x \\to 1} f(x) = 0$이라고 할 때, 이 주장의 문제점은 무엇일까요?"
 
 **❌ 절대 피해야 할 질문:**
 - 분석 결과와 다른 수학 분야의 문제
@@ -1267,7 +1307,12 @@ ${concept}
 - 수식은 자연스럽게 설명에 포함시키세요
 - 너무 형식적이지 않게, 학생과 대화하는 것처럼 써주세요
 - 틀렸을 때도 격려하는 톤을 유지하세요
-- 마지막에 반드시 "더 궁금한 점이 있으면 언제든 물어보세요"를 추가하세요`;
+- 마지막에 반드시 "더 궁금한 점이 있으면 언제든 물어보세요"를 추가하세요
+
+**✅ 수학 기호 사용법:**
+- 모든 수학식은 $...$ 안에 작성하세요
+- 예: $\\triangle ABC$, $\\angle A = 60^\\circ$, $f(x) = x^2 + 1$
+- 분수: $\\frac{a}{b}$, 제곱근: $\\sqrt{x}$, 극한: $\\lim_{x \\to 0} f(x)$`;
 
             try {
                 const response = await openai.chat_completions_create({
