@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>복습 코칭 AI 챗봇</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 16px;
+        }
+
+        .content {
+            padding: 30px;
+            min-height: 500px;
+        }
+
+        /* API 키 설정 섹션 */
+        .api-setup {
+            background: #f8fafc;
+            border: 2px dashed #e2e8f0;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .api-setup h3 {
+            color: #374151;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .api-setup p {
+            color: #6b7280;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .api-input-group {
+            display: flex;
+            gap: 10px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .api-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .api-input:focus {
+            border-color: #4f46e5;
+        }
+
+        .api-button {
+            padding: 12px 20px;
+            background: #4f46e5;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s;
+            white-space: nowrap;
+        }
+
+        .api-button:hover {
+            background: #4338ca;
+        }
+
+        /* 개념 입력 섹션 */
+        .concept-setup {
+            background: #f0f9ff;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            display: none;
+        }
+
+        .concept-setup h3 {
+            color: #0f172a;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+
+        .concept-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #bae6fd;
+            border-radius: 10px;
+            font-size: 16px;
+            outline: none;
+            margin-bottom: 15px;
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .concept-input:focus {
+            border-color: #0ea5e9;
+        }
+
+        .start-button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .start-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+        }
+
+        .start-button:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* 퀴즈 섹션 */
+        .quiz-section {
+            display: none;
+        }
+
+        .progress-bar {
+            background: #e5e7eb;
+            border-radius: 10px;
+            height: 8px;
+            margin-bottom: 25px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: linear-gradient(135deg, #10b981, #059669);
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+
+        .question-card {
+            background: #fefefe;
+            border: 2px solid #e5e7eb;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .question-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .question-number {
+            background: #4f46e5;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .question-text {
+            font-size: 18px;
+            line-height: 1.6;
+            color: #1f2937;
+            margin-bottom: 20px;
+        }
+
+        .answer-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 16px;
+            outline: none;
+            resize: vertical;
+            min-height: 120px;
+            margin-bottom: 15px;
+        }
+
+        .answer-input:focus {
+            border-color: #4f46e5;
+        }
+
+        .submit-answer-button {
+            padding: 12px 24px;
+            background: #059669;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .submit-answer-button:hover {
+            background: #047857;
+        }
+
+        .submit-answer-button:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        .feedback-card {
+            background: #f0f9ff;
+            border: 2px solid #bae6fd;
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .feedback-text {
+            line-height: 1.6;
+            color: #0f172a;
+            margin-bottom: 15px;
+        }
+
+        .next-button {
+            padding: 12px 24px;
+            background: #4f46e5;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .next-button:hover {
+            background: #4338ca;
+        }
+
+        /* 완료 섹션 */
+        .completion-section {
+            display: none;
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .completion-section h3 {
+            color: #059669;
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+
+        .completion-section p {
+            color: #6b7280;
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+
+        .restart-button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .restart-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(79, 70, 229, 0.3);
+        }
+
+        /* 로딩 애니메이션 */
+        .loading {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #6b7280;
+        }
+
+        .loading-dots {
+            display: flex;
+            gap: 3px;
+        }
+
+        .loading-dots span {
+            width: 6px;
+            height: 6px;
+            background: #6b7280;
+            border-radius: 50%;
+            animation: loading 1.4s infinite;
+        }
+
+        .loading-dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .loading-dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes loading {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-8px);
+            }
+        }
+
+        .error-message {
+            background: #fef2f2;
+            border: 2px solid #fecaca;
+            color: #b91c1c;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .api-input-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎓 복습 코칭 AI</h1>
+            <p>GPT API를 활용한 맞춤형 복습 질문 & 피드백</p>
+        </div>
+
+        <div class="content">
+            <!-- API 키 설정 섹션 -->
+            <div class="api-setup" id="apiSetup">
+                <h3>🔑 OpenAI API 키 설정</h3>
+                <p>복습 코칭 AI를 사용하기 위해 OpenAI API 키를 입력해주세요.<br>
+                   <small style="color: #9ca3af;">API 키는 브라우저에만 저장되며 외부로 전송되지 않습니다.</small></p>
+                <div class="api-input-group">
+                    <input type="password" id="apiKeyInput" class="api-input" placeholder="sk-..." />
+                    <button onclick="setApiKey()" class="api-button">설정하기</button>
+                </div>
+                <div id="apiError" class="error-message" style="display: none;"></div>
+            </div>
+
+            <!-- 개념 입력 섹션 -->
+            <div class="concept-setup" id="conceptSetup">
+                <h3>📚 복습할 개념을 입력해주세요</h3>
+                <textarea id="conceptInput" class="concept-input" placeholder="예: 이차함수의 그래프와 성질
+- 이차함수의 일반형 y = ax² + bx + c
+- 꼭짓점의 좌표와 대칭축
+- 그래프의 개형과 a의 부호에 따른 변화
+..."></textarea>
+                <button onclick="startQuiz()" class="start-button" id="startButton">
+                    🚀 복습 코칭 AI 시작
+                </button>
+                <div id="conceptError" class="error-message" style="display: none;"></div>
+            </div>
+
+            <!-- 퀴즈 진행 섹션 -->
+            <div class="quiz-section" id="quizSection">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                </div>
+
+                <div class="question-card">
+                    <div class="question-header">
+                        <span class="question-number" id="questionNumber">질문 1/6</span>
+                    </div>
+                    <div class="question-text" id="questionText">
+                        질문을 불러오는 중입니다...
+                    </div>
+                    <textarea id="answerInput" class="answer-input" placeholder="여기에 답변을 입력해주세요..."></textarea>
+                    <button onclick="submitAnswer()" class="submit-answer-button" id="submitButton">
+                        답변 제출
+                    </button>
+                </div>
+
+                <div class="feedback-card" id="feedbackCard">
+                    <div class="feedback-text" id="feedbackText"></div>
+                    <button onclick="nextQuestion()" class="next-button" id="nextButton">
+                        다음 질문
+                    </button>
+                </div>
+            </div>
+
+            <!-- 완료 섹션 -->
+            <div class="completion-section" id="completionSection">
+                <h3>🎉 복습 완료!</h3>
+                <p>모든 질문을 완료했습니다. 수고하셨어요!<br>
+                   정기적인 복습으로 학습 효과를 높여보세요.</p>
+                <button onclick="restartQuiz()" class="restart-button">
+                    새로운 복습 시작하기
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+
+    <script>
+        // 전역 변수
+        let apiKey = '';
+        let questions = [];
+        let currentQuestionIndex = 0;
+        let userConcept = '';
+
+        // API 키 설정
+        function setApiKey() {
+            const input = document.getElementById('apiKeyInput');
+            const key = input.value.trim();
+            
+            if (!key) {
+                showError('apiError', 'API 키를 입력해주세요.');
+                return;
+            }
+            
+            if (!key.startsWith('sk-')) {
+                showError('apiError', '올바른 OpenAI API 키를 입력해주세요.');
+                return;
+            }
+            
+            apiKey = key;
+            localStorage.setItem('openai_api_key', key);
+            
+            // API 키 섹션 숨기고 개념 입력 섹션 표시
+            document.getElementById('apiSetup').style.display = 'none';
+            document.getElementById('conceptSetup').style.display = 'block';
+            document.getElementById('conceptInput').focus();
+        }
+
+        function showTypingIndicator() {
+            const indicator = document.getElementById('typingIndicator');
+            indicator.style.display = 'flex';
+            const messagesContainer = document.getElementById('messages');
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function hideTypingIndicator() {
+            const indicator = document.getElementById('typingIndicator');
+            indicator.style.display = 'none';
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            addMessage(message, true);
+            input.value = '';
+            
+            // AI 응답 시뮬레이션
+            showTypingIndicator();
+            
+            setTimeout(() => {
+                hideTypingIndicator();
+                const response = generateAIResponse(message);
+                addMessage(response, false);
+            }, 1000 + Math.random() * 2000);
+        }
+
+        function sendQuickMessage(message) {
+            document.getElementById('messageInput').value = message;
+            sendMessage();
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function startFeature(featureType) {
+            const messages = {
+                'quiz': '퀴즈를 만들어드릴게요! 어떤 주제나 내용에 대한 퀴즈를 원하시나요?',
+                'summary': '요약 정리 기능을 시작합니다. 정리하고 싶은 학습 내용을 알려주세요.',
+                'explain': '개념 설명 모드입니다. 이해하기 어려운 개념이나 용어를 말씀해주세요.',
+                'schedule': '효과적인 복습 계획을 세워드리겠습니다. 현재 학습 상황을 알려주세요.'
+            };
+            
+            addMessage(messages[featureType], false);
+        }
+
+        function generateAIResponse(userMessage) {
+            const message = userMessage.toLowerCase();
+            
+            // 퀴즈 관련 응답
+            if (message.includes('퀴즈') || message.includes('문제')) {
+                return `📝 <strong>퀴즈 생성 모드</strong><br><br>
+                        좋은 선택이에요! 퀴즈는 학습 효과를 높이는 가장 좋은 방법 중 하나입니다.<br><br>
+                        📌 퀴즈 유형을 선택해주세요:<br>
+                        • 객관식 (4지 선다)<br>
+                        • 주관식 (단답형)<br>
+                        • O/X 문제<br>
+                        • 서술형 문제<br><br>
+                        어떤 주제에 대한 퀴즈를 만들어드릴까요?`;
+            }
+            
+            // 요약 관련 응답
+            if (message.includes('요약') || message.includes('정리')) {
+                return `📋 <strong>요약 정리 도우미</strong><br><br>
+                        학습 내용을 체계적으로 정리해드리겠습니다!<br><br>
+                        📚 정리 방식을 선택해주세요:<br>
+                        • 마인드맵 형식<br>
+                        • 개조식 정리<br>
+                        • 핵심 키워드 중심<br>
+                        • 단계별 프로세스<br><br>
+                        정리하고 싶은 내용을 자세히 알려주세요.`;
+            }
+            
+            // 설명 관련 응답
+            if (message.includes('설명') || message.includes('이해') || message.includes('개념')) {
+                return `💡 <strong>개념 설명 전문가</strong><br><br>
+                        어려운 개념도 쉽게 설명해드릴게요!<br><br>
+                        🎯 설명 방식:<br>
+                        • 쉬운 예시와 비유<br>
+                        • 단계별 설명<br>
+                        • 시각적 구조<br>
+                        • 실생활 연결<br><br>
+                        어떤 개념이 궁금하신가요?`;
+            }
+            
+            // 복습 계획 관련 응답
+            if (message.includes('복습') || message.includes('계획') || message.includes('스케줄')) {
+                return `📅 <strong>복습 계획 전문가</strong><br><br>
+                        효과적인 복습 스케줄을 만들어드리겠습니다!<br><br>
+                        🔄 복습 원리:<br>
+                        • 에빙하우스 망각곡선 적용<br>
+                        • 간격 반복 학습<br>
+                        • 개인 맞춤 일정<br>
+                        • 진도 추적 시스템<br><br>
+                        현재 학습 상황과 목표를 알려주세요.`;
+            }
+            
+            // 일반적인 응답들
+            const responses = [
+                `안녕하세요! 😊 학습에 도움이 되는 다양한 기능을 제공하고 있어요.<br><br>
+                 📝 퀴즈 생성, 📋 요약 정리, 💡 개념 설명, 📅 복습 계획 등의 기능을 활용해보세요!`,
+                
+                `좋은 질문이네요! 🤔<br><br>
+                 더 구체적으로 어떤 도움이 필요한지 알려주시면, 맞춤형 학습 가이드를 제공해드리겠습니다.`,
+                
+                `학습 의욕이 대단하시네요! 👏<br><br>
+                 효과적인 복습을 위해서는 적절한 간격과 다양한 방법을 활용하는 것이 중요해요. 
+                 어떤 분야를 공부하고 계신가요?`,
+                
+                `훌륭한 학습 자세입니다! ✨<br><br>
+                 궁금한 점이 있으시면 언제든지 물어보세요. 
+                 함께 효과적인 학습 방법을 찾아보겠습니다!`
+            ];
+            
+            return responses[Math.floor(Math.random() * responses.length)];
+        }
+
+        // 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('messageInput').focus();
+            
+            // 환영 메시지 (약간의 지연 후)
+            setTimeout(() => {
+                addMessage('안녕하세요! 복습 코칭 AI입니다. 😊<br>효과적인 학습을 위해 어떤 도움이 필요하신가요?', false);
+            }, 500);
+        });
+    </script>
+</body>
+</html>

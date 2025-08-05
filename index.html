@@ -583,22 +583,18 @@
                 const activeSubjects = Object.entries(subjects).filter(([_, percent]) => percent > 0);
                 
                 if (activeSubjects.length > 0) {
-                    // 도넛 차트 생성
-                    let cumulativePercent = 0;
-                    const gradientStops = [];
-                    
-                    activeSubjects.forEach(([subject, percent]) => {
-                        const startPercent = cumulativePercent;
-                        const endPercent = cumulativePercent + percent;
-                        gradientStops.push(`${colors[subject]} ${startPercent}% ${endPercent}%`);
-                        cumulativePercent = endPercent;
-                    });
-                    
+                    // SVG 도넛 차트 생성
                     const donutChart = document.createElement('div');
                     donutChart.innerHTML = `
                         <div style="text-align: center;">
-                            <div class="donut-chart donut-animate" style="background: conic-gradient(${gradientStops.join(', ')});">
-                                <div class="donut-center">
+                            <div style="position: relative; width: 250px; height: 250px; margin: 20px auto;">
+                                <svg width="250" height="250" style="transform: rotate(-90deg);">
+                                    <!-- 배경 원 -->
+                                    <circle cx="125" cy="125" r="90" fill="none" stroke="#e2e8f0" stroke-width="40" opacity="0.3"/>
+                                    <!-- 동적으로 생성될 세그먼트들 -->
+                                    <g id="donut-segments"></g>
+                                </svg>
+                                <div class="donut-center" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 120px; height: 120px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #2d3748; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                                     <div>
                                         <div style="font-size: 14px; color: #666;">총 질문</div>
                                         <div style="font-size: 18px; font-weight: bold;">${totalQuestions}개</div>
@@ -611,7 +607,7 @@
                                     const questionCount = Math.round(totalQuestions * percent / 100);
                                     const subjectStudyTime = (studyHours * percent / 100).toFixed(1);
                                     return `
-                                        <div class="legend-item" style="animation-delay: ${0.2 + index * 0.15}s;">
+                                        <div class="legend-item" style="animation-delay: ${1.5 + index * 0.15}s;">
                                             <div class="legend-color" style="background: ${colors[subject]};"></div>
                                             <div>
                                                 <strong>${subject}</strong><br>
@@ -624,10 +620,73 @@
                         </div>
                     `;
                     chartContainer.appendChild(donutChart);
+                    
+                    // 애니메이션 세그먼트 생성
+                    setTimeout(() => {
+                        const segmentsContainer = document.getElementById('donut-segments');
+                        let currentAngle = 0;
+                        const radius = 90;
+                        const strokeWidth = 40;
+                        const centerX = 125;
+                        const centerY = 125;
+                        
+                        // 각 세그먼트에 대한 path 생성 함수
+                        function createArcPath(centerX, centerY, radius, startAngle, endAngle) {
+                            const start = polarToCartesian(centerX, centerY, radius, endAngle);
+                            const end = polarToCartesian(centerX, centerY, radius, startAngle);
+                            const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+                            const d = [
+                                "M", start.x, start.y, 
+                                "A", radius, radius, 0, largeArcFlag, 0, end.x, end.y
+                            ].join(" ");
+                            return d;
+                        }
+                        
+                        function polarToCartesian(centerX, centerY, radius, angleInDegrees) {
+                            const angleInRadians = (angleInDegrees - 90) * Math.PI / 180.0;
+                            return {
+                                x: centerX + (radius * Math.cos(angleInRadians)),
+                                y: centerY + (radius * Math.sin(angleInRadians))
+                            };
+                        }
+                        
+                        activeSubjects.forEach(([subject, percent], index) => {
+                            const segmentAngle = (percent / 100) * 360;
+                            const endAngle = currentAngle + segmentAngle;
+                            
+                            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                            const pathData = createArcPath(centerX, centerY, radius, currentAngle, endAngle);
+                            
+                            path.setAttribute('d', pathData);
+                            path.setAttribute('fill', 'none');
+                            path.setAttribute('stroke', colors[subject]);
+                            path.setAttribute('stroke-width', strokeWidth);
+                            path.setAttribute('stroke-linecap', 'round');
+                            path.style.opacity = '0';
+                            
+                            segmentsContainer.appendChild(path);
+                            
+                            // DOM에 추가된 후 길이 계산 및 애니메이션 설정
+                            setTimeout(() => {
+                                const pathLength = path.getTotalLength();
+                                path.style.strokeDasharray = pathLength;
+                                path.style.strokeDashoffset = pathLength;
+                                path.style.transition = `stroke-dashoffset 1.2s ease-in-out, opacity 0.3s ease-in-out`;
+                                
+                                // 애니메이션 시작
+                                setTimeout(() => {
+                                    path.style.opacity = '1';
+                                    path.style.strokeDashoffset = '0';
+                                }, 100);
+                            }, index * 400 + 300);
+                            
+                            currentAngle = endAngle;
+                        });
+                    }, 200);
                 }
             }, 800);
             
-            // 대표 인물 섹션 생성 (2초 후)
+            // 대표 인물 섹션 생성 (도넛 차트 애니메이션 완료 후)
             setTimeout(() => {
                 document.getElementById('representative-section').innerHTML = `
                     <h3 class="card-title">🏆 대표 과목 분석</h3>
@@ -638,7 +697,7 @@
                         <p style="font-size: 1.1rem; color: rgba(255,255,255,0.8); line-height: 1.6;">${representative.description}</p>
                     </div>
                 `;
-            }, 1500);
+            }, 3000);
             
             // 바운스 애니메이션 CSS 추가
             if (!document.querySelector('#bounce-style')) {
