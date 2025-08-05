@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>학습 질문 아바타 분석기</title>
+    
+    <!-- CSS Styles -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f4f8;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .app-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background-color: #4a5568;
+            color: white;
+            text-align: center;
+            padding: 30px;
+        }
+        
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 18px;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .input-section {
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #2d3748;
+            font-size: 16px;
+        }
+        
+        .question-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: Arial, sans-serif;
+            min-height: 120px;
+            resize: vertical;
+        }
+        
+        .question-input:focus {
+            outline: none;
+            border-color: #4299e1;
+        }
+        
+        .subject-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .subject-button {
+            padding: 12px 20px;
+            border: 2px solid #e2e8f0;
+            background: #ffffff;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 16px;
+            font-family: Arial, sans-serif;
+        }
+        
+        .subject-button:hover {
+            border-color: #4299e1;
+            background-color: #f7fafc;
+        }
+        
+        .subject-button.active {
+            background-color: #4299e1;
+            color: white;
+            border-color: #4299e1;
+        }
+        
+        .analyze-button {
+            width: 100%;
+            padding: 15px;
+            background-color: #48bb78;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: Arial, sans-serif;
+        }
+        
+        .analyze-button:hover {
+            background-color: #38a169;
+        }
+        
+        .analyze-button:disabled {
+            background-color: #a0aec0;
+            cursor: not-allowed;
+        }
+        
+        .result-section {
+            margin-top: 30px;
+            display: none;
+        }
+        
+        .character-card {
+            background-color: #fef5e7;
+            border: 2px solid #f6e05e;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .character-avatar {
+            font-size: 60px;
+            margin-bottom: 15px;
+            line-height: 1;
+            position: relative;
+            height: 80px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* 삼각형 기하학적 아바타 스타일 */
+        .geometric-avatar {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            margin: 0 auto;
+        }
+        
+        .triangle {
+            position: absolute;
+            width: 0;
+            height: 0;
+        }
+        
+        .triangle-up {
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-bottom: 26px solid;
+        }
+        
+        .triangle-down {
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-top: 17px solid;
+        }
+        
+        .diamond {
+            width: 12px;
+            height: 12px;
+            background: currentColor;
+            transform: rotate(45deg);
+        }
+        
+        .character-name {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2d3748;
+        }
+        
+        .character-description {
+            font-size: 16px;
+            color: #4a5568;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        
+        .tone-analysis {
+            background-color: #e6fffa;
+            border: 1px solid #81e6d9;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .tone-label {
+            font-weight: bold;
+            color: #2d3748;
+        }
+        
+        .subject-info {
+            background-color: #ebf8ff;
+            border: 1px solid #90cdf4;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #718096;
+            display: none;
+        }
+        
+        .spinner {
+            border: 4px solid #f1f5f9;
+            border-top: 4px solid #4299e1;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            margin: 0 auto 20px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* 반응형 디자인 */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 24px;
+            }
+            
+            .header p {
+                font-size: 16px;
+            }
+            
+            .subject-buttons {
+                flex-direction: column;
+            }
+            
+            .subject-button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="header">
+            <h1>🎭 학습 질문 분석기</h1>
+            <p>질문의 말투를 분석해서 맞춤 아바타를 추천해드려요!</p>
+        </div>
+        
+        <div class="content">
+            <div class="input-section">
+                <div class="form-group">
+                    <label>📝 학습 질문을 입력해주세요:</label>
+                    <textarea
+                        id="question-input"
+                        class="question-input"
+                        placeholder="예: 수학 문제가 너무 어려워요. 도와주세요!"
+                    ></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>📚 과목을 선택해주세요:</label>
+                    <div class="subject-buttons">
+                        <button class="subject-button" data-subject="국어">국어</button>
+                        <button class="subject-button" data-subject="영어">영어</button>
+                        <button class="subject-button" data-subject="수학">수학</button>
+                        <button class="subject-button" data-subject="사회">사회</button>
+                        <button class="subject-button" data-subject="과학">과학</button>
+                    </div>
+                </div>
+                
+                <button id="analyze-button" class="analyze-button">
+                    🔍 분석하기
+                </button>
+            </div>
+            
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>질문을 분석하고 있어요...</p>
+            </div>
+            
+            <div id="result-section" class="result-section">
+                <div class="character-card">
+                    <div id="character-avatar" class="character-avatar"></div>
+                    <div id="character-name" class="character-name"></div>
+                    <div id="character-description" class="character-description"></div>
+                    <div class="tone-analysis">
+                        <span class="tone-label">감지된 감정:</span> <span id="tone-result"></span>
+                    </div>
+                    <div class="subject-info">
+                        <span class="tone-label">선택한 과목:</span> <span id="subject-result"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 5과목 × 4인물 캐릭터 데이터베이스
+        const characterDatabase = {
+            국어: {
+                논리적: { avatar: "👑", name: "세종대왕", description: "한글을 창제한 성군이로다. 백성이 쉽게 배울 수 있는 글자를 만들었노라." },
+                귀여움: { avatar: "🎨", name: "신사임당", description: "그림과 글씨를 사랑하는 어머니예요~ 함께 아름다운 작품을 만들어봐요!" },
+                호기심: { avatar: "🌙", name: "김소월", description: "진달래꽃이 흐드러진 산에서 무슨 이야기가 숨어있을까요? 시의 세계로 떠나봐요!" },
+                짜증: { avatar: "✍️", name: "윤동주", description: "별 헤는 밤... 괴로운 시대에 시를 쓰는 것도 쉽지 않구나. 답답해." }
+            },
+            영어: {
+                논리적: { avatar: "🎭", name: "셰익스피어", description: "To be or not to be. 인간 존재의 본질을 탐구하는 것이 문학의 역할이지." },
+                귀여움: { avatar: "📺", name: "엘렌 쇼", description: "Be kind to one another! 모든 사람에게 친절하게 대해요~ 함께 웃어봐요!" },
+                호기심: { avatar: "🪄", name: "JK 롤링", description: "마법의 세계에는 어떤 비밀이 숨어있을까요? 상상력이 현실을 만들어내죠!" },
+                짜증: { avatar: "🇺🇸", name: "버락 오바마", description: "Yes, we can! ...이라고 했지만 현실은 그렇게 쉽지 않더군요. 정치는 복잡해." }
+            },
+            수학: {
+                논리적: { avatar: "📐", name: "피타고라스", description: "직각삼각형의 세 변에는 영원한 진리가 숨어있다. a²+b²=c²" },
+                호기심: { avatar: "∞", name: "오일러", description: "e^(iπ)+1=0... 이 아름다운 공식에는 무한한 비밀이 담겨있어요!" },
+                귀여움: { avatar: "∫", name: "라이프니츠", description: "미적분은 변화하는 세상을 이해하는 열쇠예요~ 함께 계산해봐요!" },
+                짜증: { avatar: "🛁", name: "아르키메데스", description: "유레카! ...라고 외쳤지만 지금은 물리 법칙 설명하기 귀찮아. 왜 모르는 거야?" }
+            },
+            사회: {
+                논리적: { avatar: "📚", name: "공자", description: "학이시습지 불역열호. 배우고 때로 익히면 기쁘지 아니한가." },
+                호기심: { avatar: "💭", name: "소크라테스", description: "너 자신을 알라. 무엇이 진정한 지혜일까요? 함께 대화해봅시다!" },
+                귀여움: { avatar: "🗺️", name: "마르코 폴로", description: "동방견문록에 담긴 신기한 이야기들을 들려드릴게요~ 모험을 떠나봐요!" },
+                짜증: { avatar: "👑", name: "정조", description: "개혁을 추진하려 하나 신하들이 말을 듣지 않는구나. 정말 답답하다!" }
+            },
+            과학: {
+                논리적: { avatar: "🧠", name: "아인슈타인", description: "상대성이론으로 우주의 비밀을 밝혀냈습니다. E=mc²" },
+                짜증: { avatar: "🍎", name: "뉴턴", description: "만유인력의 법칙! 사과가 떨어지는 것도 모르다니... 정말 답답해!" },
+                호기심: { avatar: "💡", name: "에디슨", description: "1%의 영감과 99%의 노력! 새로운 발명품을 만들어볼까요?" },
+                귀여움: { avatar: "🤖", name: "도라에몽", description: "미래에서 온 고양이 로봇이야! 주머니에서 신기한 도구를 꺼내줄게~" }
+            }
+        };
+
+        // 16가지 감정 분석 함수
+        function analyzeTone(question) {
+            // 각 감정별 키워드 정의
+            const emotionKeywords = {
+                귀여움: ['도와주세요', '알려주세요', '궁금해요', '모르겠어요', '부탁드려요', '감사해요', '고마워요', '함께', '같이', '천천히', '예쁘게', '사랑스럽게', '귀엽게'],
+                짜증: ['몰라', '모름', '빨리', '답만', '대충', '귀찮', '짜증', '하기싫', '왜 이렇게', '진짜', '화나', '답답', '빡쳐', '열받', '어이없'],
+                체념: ['어차피', '포기', '안되겠', '힘들다', '무리', '불가능', '아무래도', '그만', '포기할래', '안될거야', '어쩔수없', '체념', '됐어'],
+                슬픔: ['슬퍼', '우울', '눈물', '울어', '서러워', '힘들어', '괴로워', '아파', '마음이', '가슴이', '안타까워', '쓸쓸', '외로워'],
+                낙천적: ['좋아', '즐거워', '신나', '최고', '훌륭', '멋져', '재밌어', '기대돼', '행복', '밝게', '긍정적', '희망', '파이팅'],
+                논리적: ['왜냐하면', '따라서', '그러므로', '근거', '증명', '논리', '이유', '원인', '결과', '체계적', '단계별', '순서대로', '논증'],
+                분석적: ['분석', '해부', '자세히', '세부적', '구체적', '정밀', '면밀', '꼼꼼', '체계', '분해', '요소별', '단계별'],
+                진지함: ['심각', '중요', '신중', '진지', '엄중', '엄격', '진솔', '정중', '격식', '공식적', '의미있는'],
+                농담: ['하하', 'ㅋㅋ', '웃겨', '재밌네', '농담', '장난', '유머', '개그', '코믹', '웃음', '우스워', '킥킥'],
+                무기력: ['피곤', '지쳐', '힘없어', '나른', '귀찮아', '의욕없어', '무기력', '털털', '축 늘어져', '맥빠져'],
+                호기심: ['궁금', '신기', '흥미', '관심', '알고싶어', '탐구', '연구', '조사', '파악', '이해하고싶', '배우고싶'],
+                당황: ['어?', '뭐?', '헉', '어떻게', '말도안돼', '이상해', '갑자기', '예상못한', '놀라워', '어리둥절', '황당'],
+                승부욕: ['이겨야', '반드시', '꼭', '절대', '무조건', '끝까지', '포기안해', '도전', '승리', '성공', '해내겠어'],
+                집착: ['계속', '끊임없이', '반복', '또 다시', '계속해서', '멈출수없어', '더 더', '끝없이', '완벽하게'],
+                비판적: ['문제가', '잘못된', '틀렸어', '이상해', '의심스러워', '비판', '지적', '개선', '수정', '바꿔야'],
+                감성적: ['느낌', '감동', '마음', '감정', '느껴져', '와닿아', '공감', '이해돼', '아름다워', '소중해']
+            };
+
+            // 문장 패턴 분석
+            const patterns = {
+                귀여움: [/해요\?*$/, /요\?*$/, /세요\?*$/, /드려요\?*$/, /습니다\?*$/],
+                짜증: [/야\?*$/, /냐\?*$/, /거야\?*$/, /다고\?*$/],
+                논리적: [/때문에/, /이므로/, /그래서/, /증명/],
+                호기심: [/(왜|무엇|어떻게|언제|어디).*\?/, /궁금.*\?/, /알고.*싶.*\?/, /신기.*\?/, /흥미.*\?/],
+                당황: [/!+/, /어\?/, /뭐\?/, /헉/, /어떻게.*이럴/],
+                감성적: [/\.\.\./, /~/, /♡/, /❤/, /느껴져/, /와닿/],
+                농담: [/ㅋㅋ/, /하하/, /웃겨/, /재밌/],
+                승부욕: [/반드시/, /꼭/, /절대/, /무조건/],
+                슬픔: [/흑흑/, /ㅠㅠ/, /울어/, /슬퍼/]
+            };
+
+            // 각 감정별 점수 계산
+            const scores = {};
+            
+            // 키워드 기반 점수 계산
+            for (const [emotion, keywords] of Object.entries(emotionKeywords)) {
+                scores[emotion] = keywords.filter(keyword => question.includes(keyword)).length;
+            }
+            
+            // 패턴 기반 추가 점수
+            for (const [emotion, patternList] of Object.entries(patterns)) {
+                const patternScore = patternList.filter(pattern => pattern.test(question)).length;
+                scores[emotion] = (scores[emotion] || 0) + patternScore;
+            }
+
+            // 가장 높은 점수의 감정들 찾기
+            const maxScore = Math.max(...Object.values(scores));
+            
+            if (maxScore === 0) {
+                // 키워드나 패턴이 없는 경우 기본 규칙 적용
+                if (question.length > 50) return '분석적';
+                if (question.length < 10) return '당황';
+                if (question.includes('?') && (question.includes('왜') || question.includes('무엇') || question.includes('어떻게'))) {
+                    return '호기심';
+                }
+                if (question.includes('?')) {
+                    // 단순한 물음표는 문맥에 따라 다르게 처리
+                    if (question.includes('해요') || question.includes('요')) return '귀여움';
+                    if (question.includes('야') || question.includes('거야')) return '짜증';
+                    return '당황'; // 기본 물음표는 당황으로
+                }
+                return '논리적'; // 기본값
+            }
+            
+            // 최고 점수를 받은 감정들 중에서 선택
+            const topEmotions = Object.entries(scores)
+                .filter(([emotion, score]) => score === maxScore)
+                .map(([emotion, score]) => emotion);
+            
+            // 여러 감정이 같은 점수면 첫 번째 것 선택
+            return topEmotions[0];
+        }
+
+        // 16가지 감정을 4가지 주요 감정으로 매핑
+        function mapToMainEmotion(detectedEmotion) {
+            const emotionMapping = {
+                // 논리적 그룹
+                논리적: '논리적',
+                분석적: '논리적', 
+                진지함: '논리적',
+                
+                // 귀여움 그룹  
+                귀여움: '귀여움',
+                낙천적: '귀여움',
+                감성적: '귀여움',
+                
+                // 호기심 그룹
+                호기심: '호기심',
+                승부욕: '호기심', 
+                농담: '호기심',
+                
+                // 짜증 그룹
+                짜증: '짜증',
+                체념: '짜증',
+                슬픔: '짜증',
+                무기력: '짜증',
+                당황: '짜증',
+                집착: '짜증',
+                비판적: '짜증'
+            };
+            
+            return emotionMapping[detectedEmotion] || '논리적';
+        }
+
+        // 4가지 주요 감정별 설명 함수
+        function getEmotionDescription(emotion) {
+            const descriptions = {
+                논리적: "차분하고 이성적인",
+                귀여움: "사랑스럽고 애교가 많은", 
+                호기심: "궁금하고 탐구적인",
+                짜증: "화가 나고 답답한"
+            };
+            return descriptions[emotion] || "특별한";
+        }
+
+        // 아바타 생성 함수 (이미지 또는 기하학적)
+        function createAvatar(emotion, subject, characterName) {
+            // 아인슈타인 캐릭터면 실제 이미지 사용
+            if (characterName.includes('아인슈타인')) {
+                return `<img src="아인슈타인.png" alt="아인슈타인" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid #666; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">`;
+            }
+            
+            // 일반 캐릭터는 기하학적 아바타 사용
+            return createGeometricAvatar(emotion, subject);
+        }
+
+        // 삼각형 기하학적 아바타 생성 함수
+        function createGeometricAvatar(emotion, subject) {
+            const colors = {
+                귀여움: '#ff9999', 짜증: '#ff4444', 체념: '#999999',
+                슬픔: '#6699ff', 낙천적: '#ffcc33', 논리적: '#66cc99',
+                분석적: '#9966cc', 진지함: '#666666', 농담: '#ff6600',
+                무기력: '#cccccc', 호기심: '#33ccff', 당황: '#ff3366',
+                승부욕: '#ff0000', 집착: '#990099', 비판적: '#cc6600',
+                감성적: '#ff99cc'
+            };
+            
+            const color = colors[emotion] || '#666666';
+            
+            let avatarHTML = `<div class="geometric-avatar">`;
+            
+            // 감정별 삼각형 패턴
+            switch(emotion) {
+                case '귀여움':
+                    avatarHTML += `
+                        <div class="triangle triangle-up" style="border-bottom-color: ${color}; top: 10px; left: 25px;"></div>
+                        <div class="diamond" style="background: ${color}; top: 45px; left: 20px;"></div>
+                        <div class="diamond" style="background: ${color}; top: 45px; left: 50px;"></div>
+                        <div class="triangle triangle-down" style="border-top-color: ${color}; top: 60px; left: 35px; transform: scale(0.8);"></div>
+                    `;
+                    break;
+                case '짜증':
+                    avatarHTML += `
+                        <div class="triangle triangle-up" style="border-bottom-color: ${color}; top: 5px; left: 15px; transform: rotate(-20deg);"></div>
+                        <div class="triangle triangle-up" style="border-bottom-color: ${color}; top: 5px; left: 45px; transform: rotate(20deg);"></div>
+                        <div class="diamond" style="background: ${color}; top: 45px; left: 20px;"></div>
+                        <div class="diamond" style="background: ${color}; top: 45px; left: 50px;"></div>
+                        <div class="triangle triangle-up" style="border-bottom-color: ${color}; top: 65px; left: 30px; transform: rotate(180deg) scale(0.6);"></div>
+                    `;
+                    break;
+                case '호기심':
+                    avatarHTML += `
+                        <div class="triangle triangle-up" style="border-bottom-color: ${color}; top: 8px; left: 25px;"></div>
+                        <div class="diamond" style="background: ${color}; top: 40px; left: 15px; transform: rotate(45deg) scale(1.2);"></div>
+                        <div class="diamond" style="background: ${color}; top: 40px; left: 50px; transform: rotate(45deg) scale(1.2);"></div>
+                        <div class="triangle triangle-down" style="border-top-color: ${color}; top: 60px; left: 35px;"></div>
+                        <div style="position: absolute; top: 65px; left: 40px; color: ${color}; font-size: 12px;">?</div>
+                    `;
+                    break;
+                case '당황':
+                    avatarHTML += `
+                        <div class="triangle triangle-up" style="border-bottom-color: ${color}; top: 15px; left: 25px;"></div>
+                        <div class="diamond" style="background: ${color}; top: 45px; left: 18px; transform: rotate(45deg) scale(0.8);"></div>
+                        <div class="diamond" style="background: ${color}; top: 45px; left: 48px; transform: rotate(45deg) scale(1.2);"></div>
+                        <div style="position: absolute; top: 60px; left: 35px; color: ${color}; font-size: 16px;">!</div>
+                    `;
+                    break;
+                case '슬픔':
+                    avatarHTML += `
+                        <div class="triangle triangle-up" style="border-bottom-color: ${color}; top: 12px; left: 25px;"></div>
+                        <div class="diamond" style="background: ${color}; top: 48px; left: 20px; transform: rotate(45deg);"></div>
+                        <div class="diamond" style="background: ${color}; top: 48px; left: 50px; transform: rotate(45deg);"></div>
+                        <div class="triangle triangle-down" style="border-top-color: ${color}; top: 65px; left: 35px; transform: rotate(180deg);"></div>
+                        <div style="position: absolute; top: 68px; left: 25px; color: ${color}; font-size: 8px;">💧</div>
+                    `;
+                    break;
+                case '낙천적':
+                    avatarHTML += `
+                        <div class="triangle triangle-up" style="border-bottom-color: ${color}; top: 8px; left: 25px;"></div>
+                        <div class="diamond" style="background: ${color}; top: 42px; left: 20px; transform: rotate(45deg) scale(1.1);"></div>
+                        <div class="diamond" style="background: ${color}; top: 42px; left: 50px; transform: rotate(45deg) scale(1.1);"></div>
+                        <div class="triangle triangle-up" style="border-bottom-color: ${color}; top: 58px; left: 32px; transform: rotate(180deg) scale(0.7);"></div>
+                        <div style="position: absolute; top: 5px; left: 35px; color: ${color}; font-size: 10px;">✨</div>
+                    `;
+                    break;
+                case '승부욕':
+                    avatarHTML += `
+                        <div class="triangle triangle-up" style="border-bottom-color: ${color}; top: 5px; left: 25px; transform: scale(1.2);"></div>
+                        <div class="diamond" style="background: ${color}; top: 45px; left: 15px; transform: rotate(45deg) scale(0.9);"></div>
+                        <div class="diamond" style="background: ${color}; top: 45px; left: 55px; transform: rotate(45deg) scale(0.9);"></div>
+                        <div class="triangle triangle-down" style="border-top-color: ${color}; top: 60px; left: 35px; transform: scale(0.8);"></div>
+                        <div style="position: absolute; top: 25px; left: 5px; color: ${color}; font-size: 10px;">🔥</div>
+                        <div style="position: absolute; top: 25px; left: 65px; color: ${color}; font-size: 10px;">🔥</div>
+                    `;
+                    break;
+                default:
+                    avatarHTML += `
+                        <div class="triangle triangle-up" style="border-bottom-color: ${color}; top: 10px; left: 25px;"></div>
+                        <div class="diamond" style="background: ${color}; top: 45px; left: 20px;"></div>
+                        <div class="diamond" style="background: ${color}; top: 45px; left: 50px;"></div>
+                        <div class="triangle triangle-down" style="border-top-color: ${color}; top: 60px; left: 35px;"></div>
+                    `;
+            }
+            
+            avatarHTML += `</div>`;
+            return avatarHTML;
+        }
+
+        // 전역 변수
+        let selectedSubject = '';
+
+        // DOM 요소 가져오기
+        const questionInput = document.getElementById('question-input');
+        const analyzeButton = document.getElementById('analyze-button');
+        const loading = document.getElementById('loading');
+        const resultSection = document.getElementById('result-section');
+        const subjectButtons = document.querySelectorAll('.subject-button');
+
+        // 과목 선택 이벤트
+        subjectButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // 모든 버튼에서 active 클래스 제거
+                subjectButtons.forEach(btn => btn.classList.remove('active'));
+                // 클릭된 버튼에 active 클래스 추가
+                this.classList.add('active');
+                selectedSubject = this.getAttribute('data-subject');
+            });
+        });
+
+        // 분석 버튼 이벤트
+        analyzeButton.addEventListener('click', function() {
+            const question = questionInput.value.trim();
+            
+            if (!question || !selectedSubject) {
+                alert('질문과 과목을 모두 입력해주세요!');
+                return;
+            }
+
+            // 버튼 비활성화
+            analyzeButton.disabled = true;
+            analyzeButton.textContent = '분석 중...';
+            
+            // 로딩 표시
+            loading.style.display = 'block';
+            resultSection.style.display = 'none';
+
+            // 분석 시뮬레이션 (1.5초 대기)
+            setTimeout(() => {
+                const detectedEmotion = analyzeTone(question);
+                const mainEmotion = mapToMainEmotion(detectedEmotion);
+                const character = characterDatabase[selectedSubject][mainEmotion];
+                
+                // 결과 표시
+                document.getElementById('character-avatar').innerHTML = createAvatar(mainEmotion, selectedSubject, character.name);
+                document.getElementById('character-name').textContent = character.name;
+                document.getElementById('character-description').textContent = character.description;
+                document.getElementById('tone-result').textContent = `${detectedEmotion} → ${mainEmotion} (${getEmotionDescription(mainEmotion)})`;
+                document.getElementById('subject-result').textContent = selectedSubject;
+                
+                // UI 업데이트
+                loading.style.display = 'none';
+                resultSection.style.display = 'block';
+                
+                // 버튼 활성화
+                analyzeButton.disabled = false;
+                analyzeButton.textContent = '🔍 분석하기';
+            }, 1500);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "learning-avatar-analyzer",
+  "version": "1.0.0",
+  "description": "학습 질문의 말투를 분석해서 맞춤 아바타를 추천하는 웹 애플리케이션",
+  "main": "index.html",
+  "scripts": {
+    "start": "serve .",
+    "build": "echo 'No build step required for static site'"
+  },
+  "keywords": ["avatar", "analyzer", "education", "korean", "vercel"],
+  "author": "Harry Kim",
+  "license": "MIT"
+}
