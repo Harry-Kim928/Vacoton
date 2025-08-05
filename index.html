@@ -269,16 +269,81 @@
                 width: 100%;
             }
         }
+        
+        /* 네비게이션 스타일 */
+        .navigation {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .nav-btn {
+            padding: 12px 24px;
+            border: 2px solid #4a5568;
+            background: white;
+            color: #4a5568;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .nav-btn:hover {
+            background: #4a5568;
+            color: white;
+        }
+        
+        .nav-btn.active {
+            background: #4a5568;
+            color: white;
+        }
+        
+        /* 페이지 전환 */
+        .page {
+            display: none;
+        }
+        
+        .page.active {
+            display: block;
+        }
+        
+        /* 리포트 페이지 스타일 */
+        .report-input-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .report-page .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
     <div class="app-container">
-        <div class="header">
-            <h1>🎭 학습 질문 분석기</h1>
-            <p>질문의 말투를 분석해서 맞춤 아바타를 추천해드려요!</p>
+        <!-- 네비게이션 -->
+        <div class="navigation">
+            <button class="nav-btn active" onclick="showAvatarAnalyzer()" id="nav-avatar">🎭 아바타 분석기</button>
+            <button class="nav-btn" onclick="showReportGenerator()" id="nav-report">📊 학습 리포트</button>
         </div>
-        
-        <div class="content">
+
+        <!-- 아바타 분석기 페이지 -->
+        <div id="avatar-page" class="page active">
+            <div class="header">
+                <h1>🎭 학습 질문 분석기</h1>
+                <p>질문의 말투를 분석해서 맞춤 아바타를 추천해드려요!</p>
+            </div>
+            
+            <div class="content">
             <div class="input-section">
                 <div class="form-group">
                     <label>📝 학습 질문을 입력해주세요:</label>
@@ -322,6 +387,76 @@
                         <span class="tone-label">선택한 과목:</span> <span id="subject-result"></span>
                     </div>
                 </div>
+            </div>
+            </div>
+        </div>
+
+        <!-- 리포트 생성기 페이지 -->
+        <div id="report-page" class="page report-page">
+            <div class="header">
+                <h1>📊 학습 데이터 분석기</h1>
+                <p>학습 데이터를 입력하고 나만의 리포트를 생성해보세요!</p>
+            </div>
+            
+            <div class="report-input-section">
+                <h2 style="font-size: 1.5em; margin-bottom: 20px; color: #4a5568;">📊 백엔드 입력</h2>
+                
+                <div class="form-group">
+                    <label for="total-questions">누적 질문 횟수:</label>
+                    <input type="number" id="total-questions" min="1" placeholder="예: 150" style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 16px;">
+                </div>
+                
+                <div class="form-group">
+                    <label for="study-hours">누적 공부시간 (시간):</label>
+                    <input type="number" id="study-hours" min="0" step="0.5" placeholder="예: 25.5" style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 16px;">
+                </div>
+                
+                <div class="form-group">
+                    <label>과목별 질문 비율 (%):</label>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <label style="min-width: 60px; margin-bottom: 0; font-size: 14px;">수학:</label>
+                            <input type="number" id="math-percent" min="0" max="100" placeholder="0" style="flex: 1; padding: 8px; border: 2px solid #e2e8f0; border-radius: 8px;">
+                            <span>%</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <label style="min-width: 60px; margin-bottom: 0; font-size: 14px;">영어:</label>
+                            <input type="number" id="english-percent" min="0" max="100" placeholder="0" style="flex: 1; padding: 8px; border: 2px solid #e2e8f0; border-radius: 8px;">
+                            <span>%</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <label style="min-width: 60px; margin-bottom: 0; font-size: 14px;">과학:</label>
+                            <input type="number" id="science-percent" min="0" max="100" placeholder="0" style="flex: 1; padding: 8px; border: 2px solid #e2e8f0; border-radius: 8px;">
+                            <span>%</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <label style="min-width: 60px; margin-bottom: 0; font-size: 14px;">국어:</label>
+                            <input type="number" id="korean-percent" min="0" max="100" placeholder="0" style="flex: 1; padding: 8px; border: 2px solid #e2e8f0; border-radius: 8px;">
+                            <span>%</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <label style="min-width: 60px; margin-bottom: 0; font-size: 14px;">사회:</label>
+                            <input type="number" id="social-percent" min="0" max="100" placeholder="0" style="flex: 1; padding: 8px; border: 2px solid #e2e8f0; border-radius: 8px;">
+                            <span>%</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="error-message" style="background: #fed7d7; color: #c53030; padding: 10px; border-radius: 8px; margin-top: 10px; display: none;"></div>
+                
+                <button onclick="generateReport()" style="width: 100%; padding: 15px; background: linear-gradient(45deg, #667eea, #764ba2); color: white; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 20px;">
+                    📄 리포트 생성
+                </button>
+            </div>
+            
+            <div id="report-results" style="display: none;">
+                <div id="report-summary" style="background: white; border-radius: 15px; padding: 30px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);"></div>
+                <div id="chart-container" style="background: white; border-radius: 15px; padding: 30px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);"></div>
+                <div id="representative-section" style="background: white; border-radius: 15px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center;"></div>
+                
+                <button onclick="goBackToInput()" style="width: 100%; padding: 15px; background: linear-gradient(45deg, #a0aec0, #718096); color: white; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 20px;">
+                    🔙 다시 입력하기
+                </button>
             </div>
         </div>
     </div>
@@ -643,6 +778,147 @@
                 analyzeButton.textContent = '🔍 분석하기';
             }, 1500);
         });
+
+        // 페이지 전환 함수들
+        function showAvatarAnalyzer() {
+            document.getElementById('avatar-page').classList.add('active');
+            document.getElementById('report-page').classList.remove('active');
+            document.getElementById('nav-avatar').classList.add('active');
+            document.getElementById('nav-report').classList.remove('active');
+        }
+
+        function showReportGenerator() {
+            document.getElementById('avatar-page').classList.remove('active');
+            document.getElementById('report-page').classList.add('active');
+            document.getElementById('nav-avatar').classList.remove('active');
+            document.getElementById('nav-report').classList.add('active');
+        }
+
+        // 리포트 생성 기능
+        const representatives = {
+            수학: { name: "데카르트", emoji: "🤔", description: "논리적 사고의 아버지" },
+            영어: { name: "셰익스피어", emoji: "🧠", description: "영문학의 거장" },
+            과학: { name: "아인슈타인", emoji: "🧪", description: "상대성이론의 아버지" },
+            국어: { name: "세종대왕", emoji: "👑", description: "한글 창제의 성군" },
+            사회: { name: "링컨", emoji: "🇺🇸", description: "민주주의의 수호자" }
+        };
+
+        function validateReportInputs() {
+            const totalQuestions = parseInt(document.getElementById('total-questions').value);
+            const studyHours = parseFloat(document.getElementById('study-hours').value);
+            const mathPercent = parseInt(document.getElementById('math-percent').value) || 0;
+            const englishPercent = parseInt(document.getElementById('english-percent').value) || 0;
+            const sciencePercent = parseInt(document.getElementById('science-percent').value) || 0;
+            const koreanPercent = parseInt(document.getElementById('korean-percent').value) || 0;
+            const socialPercent = parseInt(document.getElementById('social-percent').value) || 0;
+            
+            const errorMessage = document.getElementById('error-message');
+            
+            if (!totalQuestions || totalQuestions < 1) {
+                errorMessage.textContent = '누적 질문 횟수를 1 이상으로 입력해주세요.';
+                errorMessage.style.display = 'block';
+                return false;
+            }
+            
+            if (!studyHours || studyHours < 0) {
+                errorMessage.textContent = '누적 공부시간을 0 이상으로 입력해주세요.';
+                errorMessage.style.display = 'block';
+                return false;
+            }
+            
+            const totalPercent = mathPercent + englishPercent + sciencePercent + koreanPercent + socialPercent;
+            if (totalPercent !== 100) {
+                errorMessage.textContent = `과목별 비율의 합이 100%가 되어야 합니다. (현재: ${totalPercent}%)`;
+                errorMessage.style.display = 'block';
+                return false;
+            }
+            
+            errorMessage.style.display = 'none';
+            return true;
+        }
+
+        function generateReport() {
+            if (!validateReportInputs()) {
+                return;
+            }
+            
+            const totalQuestions = parseInt(document.getElementById('total-questions').value);
+            const studyHours = parseFloat(document.getElementById('study-hours').value);
+            const subjects = {
+                수학: parseInt(document.getElementById('math-percent').value) || 0,
+                영어: parseInt(document.getElementById('english-percent').value) || 0,
+                과학: parseInt(document.getElementById('science-percent').value) || 0,
+                국어: parseInt(document.getElementById('korean-percent').value) || 0,
+                사회: parseInt(document.getElementById('social-percent').value) || 0
+            };
+            
+            const maxSubject = Object.entries(subjects).reduce((a, b) => a[1] > b[1] ? a : b)[0];
+            const representative = representatives[maxSubject];
+            const avgTimePerQuestion = (studyHours * 60 / totalQuestions).toFixed(1);
+            
+            // 리포트 요약 생성
+            document.getElementById('report-summary').innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; text-align: center;">
+                    <div>
+                        <strong>총 질문 횟수</strong><br>
+                        <span style="font-size: 2em; color: #667eea;">${totalQuestions.toLocaleString()}개</span>
+                    </div>
+                    <div>
+                        <strong>총 공부시간</strong><br>
+                        <span style="font-size: 2em; color: #48bb78;">${studyHours}시간</span>
+                    </div>
+                    <div>
+                        <strong>평균 질문당 시간</strong><br>
+                        <span style="font-size: 2em; color: #ff6b6b;">${avgTimePerQuestion}분</span>
+                    </div>
+                </div>
+            `;
+            
+            // 차트 생성
+            const chartContainer = document.getElementById('chart-container');
+            chartContainer.innerHTML = '<h3 style="margin-bottom: 20px; color: #4a5568;">📈 과목별 분석</h3>';
+            
+            Object.entries(subjects).forEach(([subject, percent]) => {
+                if (percent > 0) {
+                    const questionCount = Math.round(totalQuestions * percent / 100);
+                    const subjectStudyTime = (studyHours * percent / 100).toFixed(1);
+                    const colors = { 수학: '#ff6b6b', 영어: '#74b9ff', 과학: '#00b894', 국어: '#fdcb6e', 사회: '#a29bfe' };
+                    
+                    const chartItem = document.createElement('div');
+                    chartItem.innerHTML = `
+                        <div style="display: flex; align-items: center; margin-bottom: 15px; gap: 15px;">
+                            <div style="min-width: 80px; font-weight: bold; text-align: right;">${subject}</div>
+                            <div style="flex: 1; background: #e2e8f0; border-radius: 10px; height: 30px; position: relative; overflow: hidden;">
+                                <div style="height: 100%; width: ${percent}%; background: ${colors[subject]}; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px;">
+                                    ${percent}%
+                                </div>
+                            </div>
+                            <div style="min-width: 80px; text-align: center; font-weight: bold;">
+                                ${questionCount}개<br><small>${subjectStudyTime}시간</small>
+                            </div>
+                        </div>
+                    `;
+                    chartContainer.appendChild(chartItem);
+                }
+            });
+            
+            // 대표 인물 섹션 생성
+            document.getElementById('representative-section').innerHTML = `
+                <h3 style="font-size: 1.3em; margin-bottom: 15px; color: #2d3748;">🏆 대표 과목: ${maxSubject} (${subjects[maxSubject]}%)</h3>
+                <div style="font-size: 3em; margin: 10px 0;">${representative.emoji}</div>
+                <div style="font-size: 1.5em; font-weight: bold; margin-bottom: 10px; color: #2d3748;">${representative.name}</div>
+                <div style="font-size: 1.1em; color: #4a5568;">${representative.description}</div>
+            `;
+            
+            // 리포트 결과 표시
+            document.getElementById('report-results').style.display = 'block';
+            document.getElementById('report-results').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function goBackToInput() {
+            document.getElementById('report-results').style.display = 'none';
+            window.scrollTo(0, 0);
+        }
     </script>
 </body>
 </html>
