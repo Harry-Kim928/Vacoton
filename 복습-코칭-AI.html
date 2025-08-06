@@ -45,19 +45,60 @@
 
         /* 헤더 */
         .chat-header {
-            background: #4f46e5;
+            background: #f97316;
             color: white;
             padding: 15px 20px;
             display: flex;
             align-items: center;
+            justify-content: space-between;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             z-index: 100;
+        }
+
+        .chat-header-left {
+            display: flex;
+            align-items: center;
         }
 
         .chat-header h1 {
             font-size: 18px;
             font-weight: 600;
             margin-left: 10px;
+        }
+
+        .chat-header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .question-counter {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .next-question-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .next-question-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .next-question-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         .tutor-profile {
@@ -550,10 +591,16 @@
 <body>
     <!-- 헤더 -->
     <div class="chat-header">
-        <div class="tutor-profile">
-            <img src="ai-tutor-profile.png" alt="AI 수학 튜터" onerror="this.style.display='none'; this.parentNode.innerHTML='🧠';">
+        <div class="chat-header-left">
+            <div class="tutor-profile">
+                <img src="ai-tutor-profile.png" alt="AI 수학 튜터" onerror="this.style.display='none'; this.parentNode.innerHTML='🧠';">
+            </div>
+            <h1>AI 수학 튜터</h1>
         </div>
-        <h1>AI 수학 튜터</h1>
+        <div class="chat-header-right">
+            <div class="question-counter" id="questionCounter">추가 질문 제한 (0/5)</div>
+            <button class="next-question-btn" id="nextQuestionBtn" disabled>다음 질문</button>
+        </div>
     </div>
 
     <!-- 채팅 컨테이너 -->
@@ -639,6 +686,8 @@
         let waitingForAnswer = false;
         let isProcessingMessage = false; // 메시지 처리 중복 방지
         let isComposing = false; // 한글 입력기(IME) 조합 중 여부
+        let additionalQuestionCount = 0; // 추가 질문 카운트
+        let maxAdditionalQuestions = 5; // 최대 추가 질문 수
 
         // DOM 요소들
         const chatMessages = document.getElementById('chatMessages');
@@ -647,6 +696,8 @@
         const imageButton = document.getElementById('imageButton');
         const imageInput = document.getElementById('imageInput');
         const apiModal = document.getElementById('apiModal');
+        const questionCounter = document.getElementById('questionCounter');
+        const nextQuestionBtn = document.getElementById('nextQuestionBtn');
 
         // 현재 시간 문자열 반환
         function getCurrentTime() {
@@ -717,6 +768,20 @@
             const typingIndicator = document.querySelector('.typing-indicator');
             if (typingIndicator) {
                 typingIndicator.remove();
+            }
+        }
+
+        // 추가 질문 카운터 업데이트
+        function updateQuestionCounter() {
+            questionCounter.textContent = `추가 질문 제한 (${additionalQuestionCount}/${maxAdditionalQuestions})`;
+        }
+
+        // 다음 질문 버튼 상태 업데이트
+        function updateNextQuestionButton() {
+            if (currentPhase === 'quiz' && !waitingForAnswer) {
+                nextQuestionBtn.disabled = false;
+            } else {
+                nextQuestionBtn.disabled = true;
             }
         }
 
@@ -862,6 +927,9 @@
                 
                 addMessage(questions[currentQuestionIndex]);
                 waitingForAnswer = true;
+                additionalQuestionCount = 0; // 새로운 질문 시작 시 카운터 리셋
+                updateQuestionCounter();
+                updateNextQuestionButton();
             }, 500);
         }
 
@@ -870,8 +938,13 @@
             const typing = addTypingIndicator();
             
             try {
-                // '다음' 입력 체크
-                if (answer.trim().toLowerCase() === '다음') {
+                // '다음' 입력 체크 (다양한 표현 포함)
+                const nextKeywords = ['다음', '다음 문제', '다음 질문', '다음으로', '넘어가', '다음 문제로', '다음 질문으로'];
+                const isNextRequest = nextKeywords.some(keyword => 
+                    answer.trim().toLowerCase().includes(keyword)
+                );
+                
+                if (isNextRequest) {
                     removeTypingIndicator();
                     
                     if (currentQuestionIndex === questions.length - 1) {
@@ -895,11 +968,23 @@
                     
                     addMessage(feedback + nextInstruction);
                     waitingForAnswer = false; // 이제 추가 질문도 받을 수 있음
+                    updateNextQuestionButton();
                 } else {
+                    // 추가 질문 제한 확인
+                    if (additionalQuestionCount >= maxAdditionalQuestions) {
+                        removeTypingIndicator();
+                        addMessage('추가 질문 제한에 도달했습니다. 다음 질문으로 넘어가시거나 다른 질문을 해보세요! 😊');
+                        return;
+                    }
+                    
                     // 추가 질문: 해당 질문에 대한 답변 제공
                     const followUpAnswer = await generateFollowUpAnswer(questions[currentQuestionIndex], answer);
                     removeTypingIndicator();
                     addMessage(followUpAnswer + "\n\n더 궁금한 점이 있으시면 언제든 물어보세요.");
+                    
+                    // 추가 질문 카운터 증가
+                    additionalQuestionCount++;
+                    updateQuestionCounter();
                 }
                 
             } catch (error) {
@@ -911,8 +996,12 @@
 
         // 다음 질문으로 이동
         function nextQuestion() {
-            currentQuestionIndex++;
-            displayQuestion();
+            if (currentQuestionIndex < questions.length - 1) {
+                currentQuestionIndex++;
+                displayQuestion();
+            } else {
+                finishQuiz();
+            }
         }
 
         // 추가 질문에 대한 답변 생성
@@ -987,6 +1076,9 @@
                 currentPhase = 'concept';
                 currentQuestionIndex = 0;
                 questions = [];
+                additionalQuestionCount = 0;
+                updateQuestionCounter();
+                updateNextQuestionButton();
             }, 2000);
         }
 
@@ -1365,6 +1457,10 @@ ${concept}
                 addWelcomeMessages();
             }
 
+            // 초기 상태 설정
+            updateQuestionCounter();
+            updateNextQuestionButton();
+
             // 전송 버튼 클릭
             sendButton.addEventListener('click', function() {
                 if (!isProcessingMessage) {
@@ -1410,6 +1506,13 @@ ${concept}
             document.getElementById('apiKeyInput').addEventListener('keydown', function(e) {
                 if (e.key === 'Enter') {
                     setApiKey();
+                }
+            });
+
+            // 다음 질문 버튼 클릭 이벤트
+            nextQuestionBtn.addEventListener('click', function() {
+                if (!nextQuestionBtn.disabled) {
+                    nextQuestion();
                 }
             });
         });
