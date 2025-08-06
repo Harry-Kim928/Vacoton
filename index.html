@@ -832,8 +832,9 @@
 
         // 학습 마치기 버튼 상태 업데이트
         function updateFinishLearningButton() {
-            // 모든 질문이 완료되었고, 퀴즈 단계일 때만 활성화
-            if (currentPhase === 'quiz' && currentQuestionIndex >= questions.length - 1 && !waitingForAnswer) {
+            // 모든 질문이 완료되었거나 학습 완료 상태일 때 활성화
+            if ((currentPhase === 'quiz' && currentQuestionIndex >= questions.length - 1 && !waitingForAnswer) || 
+                currentPhase === 'complete') {
                 finishLearningBtn.disabled = false;
             } else {
                 finishLearningBtn.disabled = true;
@@ -1133,14 +1134,9 @@
             }, 500);
             
             setTimeout(() => {
-                addMessage('새로운 학습 내용으로 다시 도전해보시겠습니까? 새로운 내용을 입력해주시면 언제든 시작할 수 있습니다! 💪');
-                currentPhase = 'concept';
-                currentQuestionIndex = 0;
-                questions = [];
-                additionalQuestionCount = 0; // 퀴즈 완료 시에만 카운터 리셋
-                updateQuestionCounter();
-                updateNextQuestionButton();
-                updateFinishLearningButton(); // 학습 마치기 버튼 업데이트
+                addMessage('학습이 완료되었습니다. 새로운 학습을 시작하려면 새로운 내용을 입력해주세요! 💪');
+                // 새로운 질문 생성하지 않고 학습 종료 상태 유지
+                updateFinishLearningButton(); // 학습 마치기 버튼 활성화
             }, 2000);
         }
 
