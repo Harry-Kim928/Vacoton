@@ -367,6 +367,43 @@
             cursor: not-allowed;
         }
 
+        /* 학습 마치기 버튼 */
+        .finish-learning-container {
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: center;
+            box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .finish-learning-btn {
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+        }
+
+        .finish-learning-btn:hover:not(:disabled) {
+            background: #059669;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .finish-learning-btn:disabled {
+            background: #d1d5db;
+            color: #9ca3af;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
         /* 로딩 애니메이션 */
         .typing-indicator {
             display: flex;
@@ -626,6 +663,13 @@
             </div>
             <input type="file" id="imageInput" class="file-input-hidden" accept="image/*">
         </div>
+        
+        <!-- 학습 마치기 버튼 -->
+        <div class="finish-learning-container">
+            <button id="finishLearningBtn" class="finish-learning-btn" disabled>
+                🎯 학습 마치기
+            </button>
+        </div>
     </div>
 
     <!-- API 키 설정 모달 -->
@@ -698,6 +742,7 @@
         const apiModal = document.getElementById('apiModal');
         const questionCounter = document.getElementById('questionCounter');
         const nextQuestionBtn = document.getElementById('nextQuestionBtn');
+        const finishLearningBtn = document.getElementById('finishLearningBtn');
 
         // 현재 시간 문자열 반환
         function getCurrentTime() {
@@ -782,6 +827,16 @@
                 nextQuestionBtn.disabled = false;
             } else {
                 nextQuestionBtn.disabled = true;
+            }
+        }
+
+        // 학습 마치기 버튼 상태 업데이트
+        function updateFinishLearningButton() {
+            // 모든 질문이 완료되었고, 퀴즈 단계일 때만 활성화
+            if (currentPhase === 'quiz' && currentQuestionIndex >= questions.length - 1 && !waitingForAnswer) {
+                finishLearningBtn.disabled = false;
+            } else {
+                finishLearningBtn.disabled = true;
             }
         }
 
@@ -932,6 +987,7 @@
                 // additionalQuestionCount는 누적되므로 리셋하지 않음
                 updateQuestionCounter();
                 updateNextQuestionButton();
+                updateFinishLearningButton();
             }, 500);
         }
 
@@ -971,6 +1027,7 @@
                     addMessage(feedback + nextInstruction);
                     waitingForAnswer = false; // 이제 추가 질문도 받을 수 있음
                     updateNextQuestionButton();
+                    updateFinishLearningButton();
                 } else {
                     // 추가 질문 제한 확인
                     if (additionalQuestionCount >= maxAdditionalQuestions) {
@@ -1083,6 +1140,7 @@
                 additionalQuestionCount = 0; // 퀴즈 완료 시에만 카운터 리셋
                 updateQuestionCounter();
                 updateNextQuestionButton();
+                updateFinishLearningButton(); // 학습 마치기 버튼 업데이트
             }, 2000);
         }
 
@@ -1506,6 +1564,7 @@ ${concept}
             // 초기 상태 설정
             updateQuestionCounter();
             updateNextQuestionButton();
+            updateFinishLearningButton();
 
             // 전송 버튼 클릭
             sendButton.addEventListener('click', function() {
@@ -1566,6 +1625,16 @@ ${concept}
                 
                 if (!nextQuestionBtn.disabled) {
                     nextQuestion();
+                } else {
+                    console.log('Button is disabled, cannot proceed');
+                }
+            });
+
+            // 학습 마치기 버튼 클릭 이벤트
+            finishLearningBtn.addEventListener('click', function() {
+                console.log('Finish learning button clicked');
+                if (!finishLearningBtn.disabled) {
+                    finishQuiz();
                 } else {
                     console.log('Button is disabled, cannot proceed');
                 }
