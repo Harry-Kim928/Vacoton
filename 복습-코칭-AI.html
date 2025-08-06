@@ -778,7 +778,7 @@
 
         // 다음 질문 버튼 상태 업데이트
         function updateNextQuestionButton() {
-            if (currentPhase === 'quiz' && !waitingForAnswer) {
+            if (currentPhase === 'quiz' && !waitingForAnswer && currentQuestionIndex < questions.length - 1) {
                 nextQuestionBtn.disabled = false;
             } else {
                 nextQuestionBtn.disabled = true;
@@ -897,6 +897,8 @@
                 
                 // 첫 번째 질문 시작
                 currentQuestionIndex = 0;
+                additionalQuestionCount = 0; // 새로운 퀴즈 시작 시 카운터 리셋
+                updateQuestionCounter();
                 setTimeout(() => {
                     displayQuestion();
                 }, 1000);
@@ -927,7 +929,7 @@
                 
                 addMessage(questions[currentQuestionIndex]);
                 waitingForAnswer = true;
-                additionalQuestionCount = 0; // 새로운 질문 시작 시 카운터 리셋
+                // additionalQuestionCount는 누적되므로 리셋하지 않음
                 updateQuestionCounter();
                 updateNextQuestionButton();
             }, 500);
@@ -1078,7 +1080,7 @@
                 currentPhase = 'concept';
                 currentQuestionIndex = 0;
                 questions = [];
-                additionalQuestionCount = 0;
+                additionalQuestionCount = 0; // 퀴즈 완료 시에만 카운터 리셋
                 updateQuestionCounter();
                 updateNextQuestionButton();
             }, 2000);
@@ -1546,8 +1548,17 @@ ${concept}
 
             // 다음 질문 버튼 클릭 이벤트
             nextQuestionBtn.addEventListener('click', function() {
+                console.log('Next question button clicked');
+                console.log('Button disabled:', nextQuestionBtn.disabled);
+                console.log('Current phase:', currentPhase);
+                console.log('Waiting for answer:', waitingForAnswer);
+                console.log('Current question index:', currentQuestionIndex);
+                console.log('Total questions:', questions.length);
+                
                 if (!nextQuestionBtn.disabled) {
                     nextQuestion();
+                } else {
+                    console.log('Button is disabled, cannot proceed');
                 }
             });
         });
