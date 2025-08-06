@@ -41,6 +41,10 @@
             flex-direction: column;
             height: 100vh;
             overflow: hidden;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
 
         /* 헤더 */
@@ -494,12 +498,101 @@
                 padding: 12px 15px;
             }
             
+            .chat-header h1 {
+                font-size: 16px;
+            }
+            
+            .question-counter {
+                font-size: 12px;
+                padding: 4px 8px;
+            }
+            
+            .next-question-btn {
+                font-size: 12px;
+                padding: 4px 8px;
+            }
+            
             .chat-messages {
                 padding: 15px;
             }
             
+            .message {
+                margin-bottom: 15px;
+            }
+            
+            .message.ai .avatar {
+                width: 32px;
+                height: 32px;
+                font-size: 14px;
+            }
+            
+            .message.user .avatar {
+                width: 32px;
+                height: 32px;
+                font-size: 14px;
+            }
+            
             .chat-input-container {
                 padding: 12px 15px;
+            }
+            
+            .chat-input {
+                font-size: 14px;
+                padding: 10px 45px 10px 14px;
+            }
+            
+            .input-button {
+                width: 28px;
+                height: 28px;
+                font-size: 12px;
+            }
+            
+            .finish-learning-container {
+                padding: 12px 15px;
+            }
+            
+            .finish-learning-btn {
+                padding: 10px 20px;
+                font-size: 14px;
+            }
+            
+            .tutor-profile {
+                width: 36px;
+                height: 36px;
+            }
+            
+            .tutor-subtitle {
+                font-size: 7px;
+                padding: 1px 3px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .message-bubble {
+                max-width: 90%;
+            }
+            
+            .chat-header h1 {
+                font-size: 14px;
+            }
+            
+            .question-counter {
+                display: none;
+            }
+            
+            .chat-messages {
+                padding: 10px;
+            }
+            
+            .chat-input {
+                font-size: 13px;
+                padding: 8px 40px 8px 12px;
+            }
+            
+            .input-button {
+                width: 26px;
+                height: 26px;
+                font-size: 11px;
             }
         }
 
@@ -1534,6 +1627,7 @@ ${concept}
 - 친근하고 부드러운 톤을 유지하세요
 - 학생이 이해하기 쉽게 설명하세요
 - 구체적이고 실용적인 팁을 제공하세요
+- 학생의 개념 이해도는 백그라운드에서만 분석하고, 피드백에서는 직접적으로 언급하지 마세요
 
 **✅ 수학 기호 사용법 (필요한 경우만):**
 - 모든 수학식은 $...$ 안에 작성하세요
