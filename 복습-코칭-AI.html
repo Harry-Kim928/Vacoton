@@ -551,7 +551,7 @@
     <!-- 헤더 -->
     <div class="chat-header">
         <div class="tutor-profile">
-            <img src="콴다AI 복습코치.png" alt="AI 수학 튜터" onerror="this.style.display='none'; this.parentNode.innerHTML='🧠';">
+            <img src="ai-tutor-profile.png" alt="AI 수학 튜터" onerror="this.style.display='none'; this.parentNode.innerHTML='🧠';">
         </div>
         <h1>AI 수학 튜터</h1>
     </div>
@@ -667,7 +667,7 @@
                 messageDiv.innerHTML = `<div class="message-bubble">${content}</div>`;
             } else {
                 messageDiv.className = `message ${isUser ? 'user' : 'ai'}`;
-                const avatar = isUser ? '👤' : '<img src="콴다AI 복습코치.png" alt="AI 수학 튜터" onerror="this.outerHTML=\'🧠\';">'; 
+                const avatar = isUser ? '👤' : '<img src="ai-tutor-profile.png" alt="AI 수학 튜터" onerror="this.outerHTML=\'🧠\';">'; 
                 messageDiv.innerHTML = `
                     <div class="avatar">${avatar}</div>
                     <div class="message-bubble">${content}</div>
@@ -698,7 +698,7 @@
             const typingDiv = document.createElement('div');
             typingDiv.className = 'message ai typing-indicator';
             typingDiv.innerHTML = `
-                <div class="avatar"><img src="콴다AI 복습코치.png" alt="AI 수학 튜터" onerror="this.outerHTML='🧠';"></div>
+                <div class="avatar"><img src="ai-tutor-profile.png" alt="AI 수학 튜터" onerror="this.outerHTML='🧠';"></div>
                 <div class="message-bubble">
                     <div class="typing-dots">
                         <span></span>
