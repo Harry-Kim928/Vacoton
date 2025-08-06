@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vision AI 복습 코칭 - 채팅형 학습</title>
+    <!-- Tesseract.js for OCR -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+    
+    <!-- MathJax for LaTeX rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            }
+        };
+    </script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 헤더 */
+        .chat-header {
+            background: #4f46e5;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+        }
+
+        .chat-header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .tutor-profile {
+            width: 40px;
+            height: 40px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            overflow: hidden;
+        }
+        
+        .tutor-profile img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* 채팅 영역 */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+
+        /* 말풍선 공통 스타일 */
+        .message {
+            display: flex;
+            margin-bottom: 20px;
+            animation: fadeInUp 0.3s ease-out;
+        }
+
+        .message.ai {
+            justify-content: flex-start;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-bubble {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            position: relative;
+            word-wrap: break-word;
+            line-height: 1.4;
+        }
+
+        /* AI 튜터 말풍선 (왼쪽, 회색) */
+        .message.ai .message-bubble {
+            background: #e5e7eb;
+            color: #374151;
+            border-bottom-left-radius: 8px;
+            margin-left: 50px;
+        }
+
+        .message.ai .avatar {
+            width: 36px;
+            height: 36px;
+            background: #4f46e5;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            margin-right: 12px;
+            align-self: flex-start;
+            overflow: hidden;
+        }
+        
+        .message.ai .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* 학생 말풍선 (오른쪽, 파란색) */
+        .message.user .message-bubble {
+            background: #3b82f6;
+            color: white;
+            border-bottom-right-radius: 8px;
+            margin-right: 50px;
+        }
+
+        .message.user .avatar {
+            width: 36px;
+            height: 36px;
+            background: #60a5fa;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            margin-left: 12px;
+            align-self: flex-start;
+        }
+
+        /* 시간 표시 */
+        .message-time {
+            font-size: 11px;
+            color: #9ca3af;
+            margin-top: 4px;
+            text-align: right;
+        }
+
+        .message.ai .message-time {
+            text-align: left;
+            margin-left: 50px;
+        }
+
+        .message.user .message-time {
+            text-align: right;
+            margin-right: 50px;
+        }
+
+        /* 특별한 메시지 스타일 */
+        .system-message {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .system-message .message-bubble {
+            background: #f3f4f6;
+            color: #6b7280;
+            border-radius: 20px;
+            padding: 8px 16px;
+            font-size: 13px;
+            display: inline-block;
+            max-width: 80%;
+        }
+
+        /* 이미지 미리보기 */
+        .image-preview-message {
+            max-width: 300px;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .image-preview-message img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* 버튼 스타일 */
+        .inline-button {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            margin: 8px 4px 0 0;
+            transition: background 0.2s;
+        }
+
+        .inline-button:hover {
+            background: #4338ca;
+        }
+
+        .inline-button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        /* 하단 입력 영역 */
+        .chat-input-container {
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            padding: 15px 20px;
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+            box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        .chat-input {
+            width: 100%;
+            border: 2px solid #e5e7eb;
+            border-radius: 22px;
+            padding: 12px 50px 12px 16px;
+            font-size: 15px;
+            font-family: inherit;
+            outline: none;
+            resize: none;
+            max-height: 100px;
+            min-height: 44px;
+            line-height: 1.4;
+            transition: border-color 0.2s;
+        }
+
+        .chat-input:focus {
+            border-color: #4f46e5;
+        }
+
+        .chat-input:disabled {
+            background-color: #f9fafb;
+            color: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .input-actions {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            gap: 4px;
+        }
+
+        .input-button {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 50%;
+            background: #f3f4f6;
+            color: #6b7280;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .input-button:hover {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .input-button.primary {
+            background: #4f46e5;
+            color: white;
+        }
+
+        .input-button.primary:hover {
+            background: #4338ca;
+        }
+
+        .input-button:disabled {
+            background: #f9fafb;
+            color: #d1d5db;
+            cursor: not-allowed;
+        }
+
+        /* 로딩 애니메이션 */
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 10px 0;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 3px;
+        }
+
+        .typing-dots span {
+            width: 8px;
+            height: 8px;
+            background: #9ca3af;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-8px);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 숨겨진 요소들 */
+        .hidden {
+            display: none !important;
+        }
+
+        /* 진행률 표시 */
+        .progress-message {
+            text-align: center;
+            padding: 10px;
+            background: #f0f9ff;
+            border-radius: 12px;
+            margin: 16px;
+            color: #0ea5e9;
+            font-weight: 500;
+        }
+
+        /* 반응형 디자인 */
+        @media (max-width: 768px) {
+            .message-bubble {
+                max-width: 85%;
+            }
+            
+            .chat-header {
+                padding: 12px 15px;
+            }
+            
+            .chat-messages {
+                padding: 15px;
+            }
+            
+            .chat-input-container {
+                padding: 12px 15px;
+            }
+        }
+
+        /* 파일 업로드 숨김 */
+        .file-input-hidden {
+            position: absolute;
+            left: -9999px;
+            opacity: 0;
+        }
+
+        /* API 키 설정 모달 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 400px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #1f2937;
+        }
+
+        .modal-description {
+            color: #6b7280;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 15px;
+            outline: none;
+            margin-bottom: 16px;
+            font-family: inherit;
+        }
+
+        .modal-input:focus {
+            border-color: #4f46e5;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .modal-button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .modal-button.primary {
+            background: #4f46e5;
+            color: white;
+        }
+
+        .modal-button.primary:hover {
+            background: #4338ca;
+        }
+
+        .modal-button.secondary {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .modal-button.secondary:hover {
+            background: #e5e7eb;
+        }
+
+        /* 에러 메시지 */
+        .error-message {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 12px;
+            font-size: 14px;
+        }
+
+        /* 질문 구분선 */
+        .question-divider {
+            text-align: center;
+            margin: 30px 0 20px 0;
+            position: relative;
+        }
+
+        .question-divider::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: #e5e7eb;
+            z-index: 1;
+        }
+
+        .question-divider-text {
+            background: #f5f5f5;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #6b7280;
+            position: relative;
+            z-index: 2;
+            display: inline-block;
+        }
+
+
+    </style>
+</head>
+<body>
+    <!-- 헤더 -->
+    <div class="chat-header">
+        <div class="tutor-profile">
+            <img src="콴다AI 복습코치.png" alt="AI 수학 튜터" onerror="this.style.display='none'; this.parentNode.innerHTML='🧠';">
+        </div>
+        <h1>AI 수학 튜터</h1>
+    </div>
+
+    <!-- 채팅 컨테이너 -->
+    <div class="chat-container">
+        <!-- 채팅 메시지 영역 -->
+        <div class="chat-messages" id="chatMessages">
+            <!-- 초기 환영 메시지는 JavaScript에서 추가됩니다 -->
+        </div>
+
+        <!-- 하단 입력 영역 -->
+        <div class="chat-input-container">
+            <div class="input-wrapper">
+                <textarea 
+                    id="chatInput" 
+                    class="chat-input" 
+                    placeholder="메시지를 입력하세요..."
+                    rows="1"
+                ></textarea>
+                <div class="input-actions">
+                    <button id="imageButton" class="input-button" title="이미지 업로드">📷</button>
+                    <button id="sendButton" class="input-button primary" title="전송">📤</button>
+                </div>
+            </div>
+            <input type="file" id="imageInput" class="file-input-hidden" accept="image/*">
+        </div>
+    </div>
+
+    <!-- API 키 설정 모달 -->
+    <div id="apiModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 class="modal-title">🔑 OpenAI API 키 설정</h2>
+            <div class="modal-description">
+                Vision AI 이미지 분석을 위해 OpenAI API 키가 필요합니다.<br>
+                <small>API 키는 브라우저에만 저장되며 외부로 전송되지 않습니다.</small>
+            </div>
+            <input type="password" id="apiKeyInput" class="modal-input" placeholder="sk-..." />
+            <div id="apiError" class="error-message hidden"></div>
+            <div class="modal-buttons">
+                <button onclick="setApiKey()" class="modal-button primary">설정하기</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // OpenAI 클라이언트 래퍼 클래스
+        class OpenAIClient {
+            constructor(apiKey) {
+                this.apiKey = apiKey;
+                this.baseURL = 'https://api.openai.com/v1';
+            }
+
+            async chat_completions_create(options) {
+                const response = await fetch(`${this.baseURL}/chat/completions`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${this.apiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: options.model,
+                        messages: options.messages,
+                        max_tokens: options.max_tokens,
+                        temperature: options.temperature
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API 호출 실패: ${response.status}`);
+                }
+
+                return await response.json();
+            }
+        }
+
+        // 전역 변수
+        let apiKey = '';
+        let openai = null;
+        let questions = [];
+        let currentQuestionIndex = 0;
+        let userConcept = '';
+        let isOCRProcessing = false;
+        let currentPhase = 'setup'; // 'setup', 'concept', 'quiz', 'complete'
+        let waitingForAnswer = false;
+        let isProcessingMessage = false; // 메시지 처리 중복 방지
+        let isComposing = false; // 한글 입력기(IME) 조합 중 여부
+
+        // DOM 요소들
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const sendButton = document.getElementById('sendButton');
+        const imageButton = document.getElementById('imageButton');
+        const imageInput = document.getElementById('imageInput');
+        const apiModal = document.getElementById('apiModal');
+
+        // 현재 시간 문자열 반환
+        function getCurrentTime() {
+            const now = new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const ampm = hours < 12 ? '오전' : '오후';
+            const displayHours = hours % 12 || 12;
+            return `${ampm} ${displayHours}:${minutes.toString().padStart(2, '0')}`;
+        }
+
+        // 메시지 추가 함수
+        function addMessage(content, isUser = false, isSystem = false) {
+            const messageDiv = document.createElement('div');
+            
+            if (isSystem) {
+                messageDiv.className = 'system-message';
+                messageDiv.innerHTML = `<div class="message-bubble">${content}</div>`;
+            } else {
+                messageDiv.className = `message ${isUser ? 'user' : 'ai'}`;
+                const avatar = isUser ? '👤' : '<img src="콴다AI 복습코치.png" alt="AI 수학 튜터" onerror="this.outerHTML=\'🧠\';">'; 
+                messageDiv.innerHTML = `
+                    <div class="avatar">${avatar}</div>
+                    <div class="message-bubble">${content}</div>
+                `;
+                
+                // 시간 추가
+                setTimeout(() => {
+                    const timeDiv = document.createElement('div');
+                    timeDiv.className = 'message-time';
+                    timeDiv.textContent = getCurrentTime();
+                    messageDiv.appendChild(timeDiv);
+                }, 100);
+            }
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            // MathJax 렌더링 트리거
+            if (window.MathJax) {
+                MathJax.typesetPromise([messageDiv]).catch((err) => console.log('MathJax error:', err));
+            }
+            
+            return messageDiv;
+        }
+
+        // 타이핑 인디케이터 추가
+        function addTypingIndicator() {
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message ai typing-indicator';
+            typingDiv.innerHTML = `
+                <div class="avatar"><img src="콴다AI 복습코치.png" alt="AI 수학 튜터" onerror="this.outerHTML='🧠';"></div>
+                <div class="message-bubble">
+                    <div class="typing-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+            `;
+            chatMessages.appendChild(typingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            return typingDiv;
+        }
+
+        // 타이핑 인디케이터 제거
+        function removeTypingIndicator() {
+            const typingIndicator = document.querySelector('.typing-indicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+
+        // API 키 설정
+        function setApiKey() {
+            const input = document.getElementById('apiKeyInput');
+            const key = input.value.trim();
+            const errorDiv = document.getElementById('apiError');
+            
+            if (!key) {
+                errorDiv.textContent = 'API 키를 입력해주세요!';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+            
+            if (!key.startsWith('sk-')) {
+                errorDiv.textContent = 'OpenAI API 키가 올바르지 않습니다. sk-로 시작해야 합니다.';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+            
+            apiKey = key;
+            openai = new OpenAIClient(key);
+            localStorage.setItem('openai_api_key', key);
+            
+            // 모달 닫기
+            apiModal.style.display = 'none';
+            
+            // 환영 메시지 추가
+            addWelcomeMessages();
+        }
+
+        // 환영 메시지 추가
+        function addWelcomeMessages() {
+            setTimeout(() => {
+                addMessage('안녕하세요! 👋 AI 수학 튜터입니다.');
+            }, 500);
+            
+            setTimeout(() => {
+                addMessage('교과서나 노트 사진을 올려주시거나, 학습한 내용을 직접 입력해주세요. 그러면 제가 심화 사고력을 기를 수 있는 질문들을 만들어드리겠습니다! 📚✨');
+            }, 1500);
+            
+            currentPhase = 'concept';
+        }
+
+        // 메시지 전송
+        async function sendMessage() {
+            // 중복 실행 방지
+            if (isProcessingMessage || isComposing) return;
+            
+            const message = chatInput.value.trim();
+            if (!message || isOCRProcessing) return;
+            
+            // 불완전한 한글 자모음만 필터링 (완성된 글자나 숫자, 영문은 허용)
+            if (message.length === 1 && /^[ㄱ-ㅎㅏ-ㅣ]$/.test(message)) {
+                chatInput.value = '';
+                adjustTextareaHeight();  
+                return;
+            }
+            
+            // 처리 중 플래그 설정
+            isProcessingMessage = true;
+            
+            // UI 상태 업데이트 (처리 중)
+            sendButton.disabled = true;
+            chatInput.disabled = true;
+            
+            try {
+                // 사용자 메시지 추가
+                addMessage(message, true);
+                
+                // 입력창을 즉시 초기화
+                chatInput.value = '';
+                adjustTextareaHeight();
+                
+                // 현재 단계에 따른 처리
+                if (currentPhase === 'concept') {
+                    await handleConceptInput(message);
+                } else if (currentPhase === 'quiz') {
+                    // 퀴즈 진행 중에는 항상 답변 처리 (첫 번째 답변이든 추가 질문이든)
+                    await handleAnswerInput(message);
+                }
+            } catch (error) {
+                console.error('Message processing error:', error);
+                addMessage('메시지 처리 중 오류가 발생했습니다. 다시 시도해주세요. 😅');
+            } finally {
+                // 처리 완료 후 플래그 해제 및 UI 상태 복원
+                isProcessingMessage = false;
+                sendButton.disabled = false;
+                chatInput.disabled = false;
+                chatInput.focus(); // 입력창에 다시 포커스
+            }
+        }
+
+        // 개념 입력 처리
+        async function handleConceptInput(concept) {
+            userConcept = concept;
+            currentPhase = 'quiz';
+            
+            const typing = addTypingIndicator();
+            
+            try {
+                // GPT API로 질문 생성
+                questions = await generateQuestions(concept);
+                
+                removeTypingIndicator();
+                
+                if (questions.length === 0) {
+                    throw new Error('질문 생성에 실패했습니다.');
+                }
+                
+                addMessage('좋습니다! 입력해주신 내용을 바탕으로 심화 사고력 질문들을 만들었습니다. 차근차근 같이 풀어보시죠! 🎯');
+                
+                // 첫 번째 질문 시작
+                currentQuestionIndex = 0;
+                setTimeout(() => {
+                    displayQuestion();
+                }, 1000);
+                
+            } catch (error) {
+                removeTypingIndicator();
+                console.error('Error starting quiz:', error);
+                addMessage('질문을 만드는 중에 문제가 생겼습니다. 다시 시도해주시거나 API 키를 확인해주세요. 😅');
+                currentPhase = 'concept';
+            }
+        }
+
+        // 질문 구분선 추가
+        function addQuestionDivider() {
+            const questionNumber = currentQuestionIndex + 1;
+            const dividerDiv = document.createElement('div');
+            dividerDiv.className = 'question-divider';
+            dividerDiv.innerHTML = `<div class="question-divider-text">질문 ${questionNumber}</div>`;
+            chatMessages.appendChild(dividerDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // 질문 표시
+        function displayQuestion() {
+            setTimeout(() => {
+                // 모든 질문에 구분선 추가
+                addQuestionDivider();
+                
+                addMessage(questions[currentQuestionIndex]);
+                waitingForAnswer = true;
+            }, 500);
+        }
+
+        // 답변 입력 처리
+        async function handleAnswerInput(answer) {
+            const typing = addTypingIndicator();
+            
+            try {
+                // '다음' 입력 체크
+                if (answer.trim().toLowerCase() === '다음') {
+                    removeTypingIndicator();
+                    
+                    if (currentQuestionIndex === questions.length - 1) {
+                        // 마지막 질문 완료
+                        finishQuiz();
+                    } else {
+                        // 다음 질문으로 이동
+                        currentQuestionIndex++;
+                        displayQuestion();
+                    }
+                    return;
+                }
+                
+                // 일반 답변이나 추가 질문 처리
+                if (waitingForAnswer) {
+                    // 첫 번째 답변: 피드백 제공
+                    const feedback = await generateFeedback(questions[currentQuestionIndex], answer);
+                    removeTypingIndicator();
+                    
+                    let nextInstruction = "\n\n더 궁금한 점이 있으시면 언제든 물어보세요.";
+                    
+                    addMessage(feedback + nextInstruction);
+                    waitingForAnswer = false; // 이제 추가 질문도 받을 수 있음
+                } else {
+                    // 추가 질문: 해당 질문에 대한 답변 제공
+                    const followUpAnswer = await generateFollowUpAnswer(questions[currentQuestionIndex], answer);
+                    removeTypingIndicator();
+                    addMessage(followUpAnswer + "\n\n더 궁금한 점이 있으시면 언제든 물어보세요.");
+                }
+                
+            } catch (error) {
+                removeTypingIndicator();
+                console.error('Error processing answer:', error);
+                addMessage('답변을 처리하는 중에 문제가 생겼습니다. 다시 시도해주세요. 😅');
+            }
+        }
+
+        // 다음 질문으로 이동
+        function nextQuestion() {
+            currentQuestionIndex++;
+            displayQuestion();
+        }
+
+        // 추가 질문에 대한 답변 생성
+        async function generateFollowUpAnswer(originalQuestion, followUpQuestion) {
+            const prompt = `당신은 친근하고 정확한 수학 선생님입니다. 학생의 추가 질문에 대해 자연스럽고 이해하기 쉽게 설명해주세요.
+
+**원래 질문:** ${originalQuestion}
+**학생의 추가 질문:** ${followUpQuestion}
+
+**답변 지침:**
+- 원래 문제와 연관지어서 설명하세요
+- 자연스러운 대화체로 친근하게 답변하세요
+- 수식이나 계산이 필요하면 단계적으로 쉽게 설명하세요
+- 구체적인 예시나 숫자를 들어 설명하세요
+
+**⚠️ 일관성 중요:** 
+- 이전에 제공한 피드백과 모순되지 않게 답변하세요
+- 같은 문제에 대해서는 항상 같은 결론을 유지하세요
+- 계산을 다시 확인하고 정확한 답변을 제공하세요
+
+**답변 예시:**
+"아, 좋은 질문이네요! 😊 판별식이 음수가 나오는 이유를 설명해드릴게요.
+
+앞서 문제에서 두 함수를 연립하면 x² - 4x + 5 = 0이 나왔잖아요? 이때 판별식 D = b² - 4ac = 16 - 20 = -16이 됩니다. 
+
+판별식이 음수라는 건 이차방정식의 해가 실수 범위에서 존재하지 않는다는 뜻이에요. 쉽게 말해서 x축과 만나는 점이 없다는 거죠. 그래프로 생각해보면 포물선이 x축 위에 떠 있는 상태라고 보시면 됩니다.
+
+따라서 두 함수의 교점도 실제로는 존재하지 않는 거예요. 그래서 '교점의 x좌표가 음수'라는 조건 자체가 불가능한 상황인 셈이죠!"
+
+**중요한 점:**
+- 수식을 자연스럽게 설명에 포함시키세요
+- 비유나 그래프 설명을 활용하세요  
+- 학생이 이해할 수 있도록 단계별로 설명하세요
+- 자연스럽고 친근한 톤으로 마무리하세요
+
+**✅ 수학 기호 사용법:**
+- 모든 수학식은 $...$ 안에 작성하세요
+- 예: $\\triangle ABC$, $\\angle A = 60^\\circ$, $f(x) = x^2 + 1$
+- 분수: $\\frac{a}{b}$, 제곱근: $\\sqrt{x}$, 극한: $\\lim_{x \\to 0} f(x)$`;
+
+            try {
+                const response = await openai.chat_completions_create({
+                    model: 'gpt-3.5-turbo',
+                    messages: [
+                        {
+                            role: 'user',
+                            content: prompt
+                        }
+                    ],
+                    max_tokens: 800,
+                    temperature: 0.7
+                });
+
+                return response.choices[0].message.content;
+                
+            } catch (error) {
+                console.error('GPT API Error:', error);
+                throw error;
+            }
+        }
+
+        // 퀴즈 완료
+        function finishQuiz() {
+            currentPhase = 'complete';
+            
+            setTimeout(() => {
+                addMessage('🏆 모든 질문을 완료하셨습니다! 정말 훌륭하셨습니다!');
+            }, 500);
+            
+            setTimeout(() => {
+                addMessage('새로운 학습 내용으로 다시 도전해보시겠습니까? 새로운 내용을 입력해주시면 언제든 시작할 수 있습니다! 💪');
+                currentPhase = 'concept';
+                currentQuestionIndex = 0;
+                questions = [];
+            }, 2000);
+        }
+
+        // 이미지 업로드 처리
+        function handleImageUpload(file) {
+            if (!file || !file.type.startsWith('image/')) {
+                addMessage('이미지 파일만 올릴 수 있습니다! 📷', false);
+                return;
+            }
+
+            if (file.size > 10 * 1024 * 1024) {
+                addMessage('파일이 너무 커요. 10MB 이하로 올려주세요. 📁', false);
+                return;
+            }
+
+            // 이미지 미리보기 추가
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imagePreview = `<div class="image-preview-message"><img src="${e.target.result}" alt="업로드된 이미지"></div>사진을 올려주셨네요! AI가 이미지를 분석해보겠습니다...`;
+                addMessage(imagePreview, true);
+                
+                // API 키가 있으면 Vision API로 분석
+                if (apiKey) {
+                    analyzeImageConcept(file);
+                } else {
+                    addMessage('AI 이미지 분석을 위해 먼저 API 키를 설정해주세요! 🔑');
+                    performOCR(file);
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Vision API로 이미지 개념 분석
+        async function analyzeImageConcept(file) {
+            if (isOCRProcessing) return;
+            
+            isOCRProcessing = true;
+            const typing = addTypingIndicator();
+            
+            try {
+                const base64Image = await fileToBase64(file);
+                
+                const response = await openai.chat_completions_create({
+                    model: 'gpt-4o-mini',
+                    messages: [
+                        {
+                            role: 'user',
+                            content: [
+                                {
+                                    type: 'text',
+                                    text: `이 수학 문제를 자세히 분석해주세요:
+
+**1단계: 문제 내용 파악**
+- 문제에서 무엇을 묻고 있는지 구체적으로 설명
+- 주어진 조건이나 상황 파악
+- 사용된 수학적 개념이나 공식 확인
+
+**2단계: 핵심 개념 추출**
+- 이 문제가 다루는 핵심 수학 개념 (예: 이차함수, 극한, 미분, 삼각함수 등)
+- 문제 해결에 필요한 주요 수학적 원리나 성질
+
+**3단계: 해결 과정 및 응용 포인트**
+- 문제 해결의 핵심 아이디어나 접근법
+- 이 문제와 유사한 상황이나 응용 가능한 다른 경우들
+- 학생들이 헷갈릴 수 있는 부분이나 주의사항
+
+**출력 형식:**
+핵심 개념: [메인 수학 개념]
+문제 유형: [구체적인 문제 유형]
+해결 포인트: [핵심 해결 방법이나 아이디어]
+응용 범위: [관련된 다른 상황이나 확장 개념들]
+
+예시:
+핵심 개념: 이차함수의 최댓값과 최솟값
+문제 유형: 이차함수 f(x) = ax² + bx + c에서 주어진 구간에서의 최댓값 구하기
+해결 포인트: 대칭축과 구간의 위치 관계를 파악하여 경우를 나누어 해결
+응용 범위: 실생활 최적화 문제, 도함수를 이용한 최댓값 문제, 이차부등식과의 연관성
+
+위 형식으로 분석해주세요.`
+                                },
+                                {
+                                    type: 'image_url',
+                                    image_url: {
+                                        url: base64Image
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    max_tokens: 800
+                });
+
+                const analysisResult = response.choices[0].message.content.trim();
+                
+                removeTypingIndicator();
+                
+                // 분석 결과를 파싱하여 핵심 정보 추출
+                const conceptMatch = analysisResult.match(/핵심 개념:\s*(.+)/);
+                const typeMatch = analysisResult.match(/문제 유형:\s*(.+)/);
+                const pointMatch = analysisResult.match(/해결 포인트:\s*(.+)/);
+                const applicationMatch = analysisResult.match(/응용 범위:\s*(.+)/);
+                
+                const concept = conceptMatch ? conceptMatch[1].trim() : '수학 개념';
+                const problemType = typeMatch ? typeMatch[1].trim() : '';
+                const solutionPoint = pointMatch ? pointMatch[1].trim() : '';
+                const applicationRange = applicationMatch ? applicationMatch[1].trim() : '';
+                
+                // 분석 결과 표시
+                addMessage(`✅ ${concept} 문제를 분석했습니다.`);
+                
+                if (problemType) {
+                    setTimeout(() => {
+                        addMessage(`📋 문제 유형: ${problemType}`);
+                    }, 1000);
+                }
+                
+                if (solutionPoint) {
+                    setTimeout(() => {
+                        addMessage(`💡 해결 포인트: ${solutionPoint}`);
+                    }, 2000);
+                }
+                
+                if (applicationRange) {
+                    setTimeout(() => {
+                        addMessage(`🔄 응용 범위: ${applicationRange}`);
+                    }, 3000);
+                }
+                
+                // 자동으로 응용 개념 질문 생성 시작
+                setTimeout(() => {
+                    addMessage('이제 이 개념을 바탕으로 응용 사고력 질문들을 만들어보겠습니다! 🎯');
+                    handleConceptInput(analysisResult);
+                }, 4500);
+                
+            } catch (error) {
+                removeTypingIndicator();
+                console.error('Vision Analysis Error:', error);
+                addMessage('AI 분석이 잘 안 되네요. 다른 방법으로 시도해보겠습니다! 🔄');
+                
+                // 실패 시 OCR로 대체
+                setTimeout(() => {
+                    performOCR(file);
+                }, 1000);
+            }
+            
+            isOCRProcessing = false;
+        }
+
+        // OCR 텍스트 인식
+        async function performOCR(file) {
+            if (isOCRProcessing) return;
+            
+            isOCRProcessing = true;
+            const typing = addTypingIndicator();
+            
+            try {
+                removeTypingIndicator();
+                addMessage('텍스트를 읽고 있습니다... 📖');
+                const newTyping = addTypingIndicator();
+                
+                const { data: { text } } = await Tesseract.recognize(
+                    file,
+                    'kor+eng',
+                    {
+                        tessedit_pageseg_mode: Tesseract.PSM.AUTO_OSD,
+                        tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz가-힣+-*/=()[]{}^√∞∑∫≤≥≠→←↑↓°′″αβγδεζηθικλμνξοπρστυφχψω∀∃∈∉⊂⊃∪∩∅ℝℂℕℤℚ∴∵∝∼≅≡∝∠⊥∥⟂△▲▼▶◀●○■□★☆',
+                        preserve_interword_spaces: '1'
+                    }
+                );
+                
+                // 수학 기호 후처리
+                let cleanedText = text
+                    .replace(/"/g, '²')
+                    .replace(/'/g, '′')
+                    .replace(/—/g, '-')
+                    .replace(/–/g, '-')
+                    .replace(/\|/g, '1')
+                    .replace(/O/g, '0')
+                    .replace(/l/g, '1')
+                    .replace(/\s*x\s*/g, '×')
+                    .replace(/\s*\*\s*/g, '×')
+                    .replace(/\/\s*/g, '÷')
+                    .replace(/<=|≤/g, '≤')
+                    .replace(/>=|≥/g, '≥')
+                    .replace(/!=/g, '≠')
+                    .replace(/\s+/g, ' ')
+                    .split('\n')
+                    .map(line => line.trim())
+                    .filter(line => line.length > 0)
+                    .join('\n');
+                
+                removeTypingIndicator();
+                
+                if (cleanedText.trim()) {
+                    addMessage(`📝 텍스트 인식 완료!\n\n${cleanedText}\n\n이 내용으로 질문을 만들어드릴까요?`);
+                    
+                    // 자동으로 퀴즈 시작
+                    setTimeout(() => {
+                        handleConceptInput(cleanedText);
+                    }, 2000);
+                } else {
+                    throw new Error('텍스트를 인식할 수 없습니다.');
+                }
+                
+            } catch (error) {
+                removeTypingIndicator();
+                console.error('OCR Error:', error);
+                addMessage('이미지에서 글자를 읽기 어렵습니다. 더 선명한 사진을 사용하거나 직접 입력해주세요. 😅');
+            }
+            
+            isOCRProcessing = false;
+        }
+
+        // GPT API로 질문 생성
+        async function generateQuestions(concept) {
+            const prompt = `당신은 고등학생을 위한 수학 복습용 챗봇입니다. 분석된 수학 개념에 정확히 맞는 응용 문제를 생성하세요.
+
+**문제 분석 결과:**
+${concept}
+
+**핵심 원칙: 분석된 개념에 정확히 맞는 문제만 생성하세요**
+
+**✅ 분석 결과 활용 지침:**
+- 위 분석에서 나온 "핵심 개념"에 정확히 맞는 문제를 만드세요
+- "문제 유형"과 일치하는 질문만 생성하세요
+- "해결 포인트"에 언급된 방법론을 활용하는 문제를 만드세요
+
+**✅ 질문 생성 방식:**
+- 매번 다른 구체적인 수치와 조건을 제시하세요 (같은 숫자 반복 금지)
+- 다양한 질문 패턴을 사용하세요: "~라고 가정할 때", "~라고 했을 때", "~인 조건에서"
+- 학생이 직접 계산해서 모순을 발견하게 하세요
+- 각 질문마다 서로 다른 수학적 접근법을 요구하세요
+
+**✅ 수학 기호 사용법:**
+- 삼각형: $\\triangle ABC$
+- 각도: $\\angle ABC = 30°$ 또는 $\\angle ABC = 30^\\circ$
+- 함수: $f(x) = x^2 + 2x + 1$
+- 분수: $\\frac{a}{b}$
+- 제곱근: $\\sqrt{x}$
+- 극한: $\\lim_{x \\to 0} f(x)$
+- 시그마: $\\sum_{i=1}^n a_i$
+- 모든 수학식은 $...$ 또는 $$...$$ 안에 작성하세요
+
+**✅ 수학 분야별 질문 예시:**
+
+**이등변삼각형/기하 문제:**
+- "$\\triangle ABC$에서 $AB = AC = 5$, $BC = 8$이고, 꼭짓각 $\\angle A = 120^\\circ$라고 할 때, 이 조건이 왜 성립하지 않는지 설명해보세요."
+- "이등변삼각형에서 밑각이 $70^\\circ$이고 꼭짓각이 $50^\\circ$라고 할 때, 어떤 모순이 발생할까요?"
+
+**이차함수 문제:**
+- "이차함수 $y = x^2 + 2x + 5$와 직선 $y = 3x + 1$이 두 점에서 만난다고 가정할 때, 어떤 모순이 발생할까요?"
+
+**삼각함수 문제:**
+- "$\\sin \\theta = 0.8$, $\\cos \\theta = 0.7$이라고 할 때, 이 조건이 왜 불가능한지 설명해보세요."
+
+**극한 문제:**
+- "함수 $f(x) = \\frac{x^2-1}{x-1}$에서 $\\lim_{x \\to 1} f(x) = 0$이라고 할 때, 이 주장의 문제점은 무엇일까요?"
+
+**❌ 절대 피해야 할 질문:**
+- 분석 결과와 다른 수학 분야의 문제
+- "~를 설명하시오" 같은 주관적 설명 질문
+- 단순 계산 문제
+
+**응답 형식:**
+1. [분석된 개념에 맞는 구체적 질문1]
+2. [분석된 개념에 맞는 구체적 질문2]
+3. [분석된 개념에 맞는 구체적 질문3]
+4. [분석된 개념에 맞는 구체적 질문4]
+5. [분석된 개념에 맞는 구체적 질문5]
+6. [분석된 개념에 맞는 구체적 질문6]
+
+**중요 지침:**
+1. 반드시 분석된 "핵심 개념"과 "문제 유형"에 정확히 맞는 질문만 생성하세요
+2. 다른 수학 분야의 문제는 절대 만들지 마세요
+3. **질문 다양성 확보**: 각 질문마다 서로 다른 수치, 조건, 접근법을 사용하세요
+4. **반복 금지**: 비슷한 패턴이나 같은 숫자를 여러 질문에서 반복 사용하지 마세요
+5. **창의적 접근**: 같은 개념이라도 다양한 각도에서 모순을 찾을 수 있는 질문을 만드세요`;
+
+            try {
+                const response = await openai.chat_completions_create({
+                    model: 'gpt-3.5-turbo',
+                    messages: [
+                        {
+                            role: 'user',
+                            content: prompt
+                        }
+                    ],
+                    max_tokens: 1000,
+                    temperature: 0.9
+                });
+
+                const content = response.choices[0].message.content;
+                
+                // 질문 추출
+                const questionLines = content.split('\n').filter(line => 
+                    line.trim() && /^\d+\./.test(line.trim())
+                );
+                
+                return questionLines.map(line => line.replace(/^\d+\.\s*/, '').trim());
+                
+            } catch (error) {
+                console.error('GPT API Error:', error);
+                throw error;
+            }
+        }
+
+        // GPT API로 피드백 생성
+        async function generateFeedback(question, answer) {
+            const prompt = `당신은 친근하고 정확한 수학 선생님입니다. 학생의 답변을 정확하게 검토한 후, 자연스럽고 이해하기 쉽게 피드백을 주세요.
+
+**학생이 답한 질문:** ${question}
+**학생 답변:** ${answer}
+
+**피드백 지침:**
+1. 먼저 문제의 정확한 답을 직접 계산하세요
+2. 학생 답변이 맞는지 틀렸는지 정확하게 판단하세요
+3. 자연스러운 대화체로 친근하게 설명해주세요
+
+**⚠️ 일관성 중요:** 
+- 한 번 "모순이 있다/없다"고 판단했으면, 추가 질문에서도 같은 결론을 유지하세요
+- 계산 결과를 바탕으로 명확하게 결론을 내리고, 그 결론을 일관되게 유지하세요
+
+**응답 형식:**
+- 답이 맞으면: 칭찬과 함께 핵심 개념을 간단히 정리
+- 답이 틀리면: 부드럽게 틀렸다고 알려주고, 올바른 풀이 과정을 단계별로 쉽게 설명
+
+**예시 (정답인 경우):**
+"정답이에요! 👍 판별식을 이용해서 잘 풀어주셨네요. D = b² - 4ac로 근의 개수를 판단할 수 있는데, D < 0일 때는 실근이 없다는 걸 정확히 파악하셨어요. 이런 유형의 문제에서는 항상 판별식부터 계산하는 게 핵심이에요."
+
+**예시 (오답인 경우):**
+"아, 이 문제는 조금 다르게 접근해야 해요! 😊 먼저 두 함수를 연립해보면 2x² - 5x + 3 = 3x - 1이 되죠. 이걸 정리하면 2x² - 8x + 4 = 0이 됩니다. 판별식을 계산해보면 D = 64 - 32 = 32 > 0이라서 실제로는 교점이 2개 존재해요. 그런데 x = (8 ± √32)/4 = 2 ± √2인데, 이 값들이 모두 양수라서 x좌표가 음수인 경우는 없답니다."
+
+**중요한 점:**
+- 수식은 자연스럽게 설명에 포함시키세요
+- 너무 형식적이지 않게, 학생과 대화하는 것처럼 써주세요
+- 틀렸을 때도 격려하는 톤을 유지하세요
+- 자연스럽고 간결하게 마무리하세요
+
+**✅ 수학 기호 사용법:**
+- 모든 수학식은 $...$ 안에 작성하세요
+- 예: $\\triangle ABC$, $\\angle A = 60^\\circ$, $f(x) = x^2 + 1$
+- 분수: $\\frac{a}{b}$, 제곱근: $\\sqrt{x}$, 극한: $\\lim_{x \\to 0} f(x)$`;
+
+            try {
+                const response = await openai.chat_completions_create({
+                    model: 'gpt-3.5-turbo',
+                    messages: [
+                        {
+                            role: 'user',
+                            content: prompt
+                        }
+                    ],
+                    max_tokens: 800,
+                    temperature: 0.7
+                });
+
+                return response.choices[0].message.content;
+                
+            } catch (error) {
+                console.error('GPT API Error:', error);
+                throw error;
+            }
+        }
+
+        // 파일을 Base64로 변환
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // 텍스트 영역 높이 자동 조절
+        function adjustTextareaHeight() {
+            chatInput.style.height = 'auto';
+            chatInput.style.height = Math.min(chatInput.scrollHeight, 100) + 'px';
+        }
+
+        // 이벤트 리스너 설정
+        document.addEventListener('DOMContentLoaded', function() {
+            // 저장된 API 키 확인
+            const savedApiKey = localStorage.getItem('openai_api_key');
+            if (savedApiKey) {
+                document.getElementById('apiKeyInput').value = savedApiKey;
+                apiKey = savedApiKey;
+                openai = new OpenAIClient(savedApiKey);
+                apiModal.style.display = 'none';
+                addWelcomeMessages();
+            }
+
+            // 전송 버튼 클릭
+            sendButton.addEventListener('click', function() {
+                if (!isProcessingMessage) {
+                    sendMessage();
+                }
+            });
+
+            // 한글 입력기(IME) 이벤트 처리
+            chatInput.addEventListener('compositionstart', function(e) {
+                isComposing = true;
+            });
+
+            chatInput.addEventListener('compositionend', function(e) {
+                isComposing = false;
+                // composition 완료 후 자연스럽게 처리 (값 덮어쓰기 제거)
+            });
+
+            // 엔터 키 전송 (Shift+Enter는 줄바꿈)
+            chatInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey && !isProcessingMessage && !isComposing) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            // 텍스트 영역 높이 자동 조절
+            chatInput.addEventListener('input', adjustTextareaHeight);
+
+            // 이미지 업로드 버튼
+            imageButton.addEventListener('click', function() {
+                imageInput.click();
+            });
+
+            // 이미지 선택 이벤트
+            imageInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    handleImageUpload(file);
+                }
+            });
+
+            // API 키 입력에서 엔터 키
+            document.getElementById('apiKeyInput').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    setApiKey();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
