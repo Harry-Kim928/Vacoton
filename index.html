@@ -817,6 +817,26 @@
             addWelcomeMessages();
         }
 
+        // API 키 유효성 검사
+        async function validateApiKey() {
+            if (!apiKey || !openai) {
+                return false;
+            }
+            
+            try {
+                // 간단한 테스트 요청으로 API 키 유효성 확인
+                const response = await openai.chat_completions_create({
+                    model: 'gpt-3.5-turbo',
+                    messages: [{ role: 'user', content: 'test' }],
+                    max_tokens: 5
+                });
+                return true;
+            } catch (error) {
+                console.error('API Key validation failed:', error);
+                return false;
+            }
+        }
+        
         // 환영 메시지 추가
         function addWelcomeMessages() {
             setTimeout(() => {
@@ -884,6 +904,16 @@
             userConcept = concept;
             currentPhase = 'quiz';
             
+            // API 키 검증
+            if (!apiKey) {
+                addMessage('API 키가 설정되지 않았습니다. 먼저 API 키를 설정해주세요. 🔑');
+                if (apiModal) {
+                    apiModal.style.display = 'flex';
+                }
+                currentPhase = 'concept';
+                return;
+            }
+            
             const typing = addTypingIndicator();
             
             try {
@@ -920,8 +950,33 @@
             } catch (error) {
                 removeTypingIndicator();
                 console.error('Error starting quiz:', error);
-                addMessage('질문을 만드는 중에 문제가 생겼습니다. 다시 시도해주시거나 API 키를 확인해주세요. 😅');
+                
+                // 더 구체적인 오류 메시지 제공
+                let errorMessage = '질문을 만드는 중에 문제가 생겼습니다. ';
+                
+                if (error.message && error.message.includes('401')) {
+                    errorMessage += 'API 키가 유효하지 않습니다. 새로운 API 키를 설정해주세요. 🔑';
+                } else if (error.message && error.message.includes('429')) {
+                    errorMessage += 'API 사용량이 초과되었습니다. 잠시 후 다시 시도해주세요. ⏰';
+                } else if (error.message && error.message.includes('500')) {
+                    errorMessage += 'OpenAI 서버에 일시적인 문제가 있습니다. 잠시 후 다시 시도해주세요. 🔄';
+                } else if (!apiKey) {
+                    errorMessage += 'API 키가 설정되지 않았습니다. 먼저 API 키를 설정해주세요. 🔑';
+                } else {
+                    errorMessage += `오류 내용: ${error.message || '알 수 없는 오류'}`;
+                }
+                
+                addMessage(errorMessage);
                 currentPhase = 'concept';
+                
+                // API 키가 없거나 유효하지 않은 경우 모달 표시
+                if (!apiKey || (error.message && error.message.includes('401'))) {
+                    setTimeout(() => {
+                        if (apiModal) {
+                            apiModal.style.display = 'flex';
+                        }
+                    }, 2000);
+                }
             }
         }
 
@@ -1254,12 +1309,87 @@
                 }, 4000);
             }
             
-            // 6단계: 다음 단계 안내 (5초 후)
+            // 6단계: 응용 범위 검색 (5초 후)
             setTimeout(() => {
                 const concept = sections.concept || '수학 개념';
-                addMessage('✅ **분석 완료!** 이제 이 개념을 바탕으로 응용 사고력 질문들을 만들어보겠습니다! 🎯');
-                handleConceptInput(concept);
+                addMessage('🔍 **응용 범위 검색 중...** 인터넷에서 관련 응용 개념들을 찾고 있습니다!');
+                findApplicationConcepts(concept, sections);
             }, 5000);
+        }
+        
+        // 응용 개념 찾기 (인터넷 검색 기반)
+        async function findApplicationConcepts(concept, sections) {
+            const typing = addTypingIndicator();
+            
+            try {
+                // GPT를 활용해 인터넷에서 찾을 수 있는 응용 범위 생성
+                const response = await openai.chat_completions_create({
+                    model: 'gpt-3.5-turbo',
+                    messages: [
+                        {
+                            role: 'user',
+                            content: `"${concept}" 개념의 응용 범위를 인터넷에서 찾을 수 있는 실제 사례들로 4-6개 제시해주세요.
+
+**문제 정보:**
+- 핵심 개념: ${concept}
+- 문제 유형: ${sections.type || '미지정'}
+
+**요구사항:**
+1. 실제 인터넷에서 찾을 수 있는 구체적인 응용 사례
+2. 각 응용마다 간단한 설명과 왜 관련있는지 명시
+3. 난이도는 점진적으로 높아지도록 구성
+4. 실생활, 다른 수학 분야, 과학/공학 분야 등 다양한 영역 포함
+
+**출력 형식:**
+🎯 **응용 범위 1: [응용 제목]**
+- 설명: [구체적 응용 내용]
+- 연관성: [원래 개념과의 관련성]
+
+🎯 **응용 범위 2: [응용 제목]**
+- 설명: [구체적 응용 내용]  
+- 연관성: [원래 개념과의 관련성]
+
+... (4-6개까지)
+
+**예시:**
+만약 "이차함수"라면:
+🎯 **응용 범위 1: 포물선 운동 (물리학)**
+- 설명: 공을 던졌을 때의 궤적, 분수대 물줄기 모양
+- 연관성: 중력 가속도에 의한 포물선 궤도가 이차함수 그래프와 동일
+
+🎯 **응용 범위 2: 최적화 문제 (경영학)**
+- 설명: 생산량에 따른 이익 최대화, 광고비 대비 매출 최적점
+- 연관성: 이차함수의 최댓값/최솟값 구하기 원리 활용`
+                        }
+                    ],
+                    max_tokens: 1200,
+                    temperature: 0.7
+                });
+
+                const applicationResult = response.choices[0].message.content.trim();
+                
+                removeTypingIndicator();
+                
+                // 응용 범위 결과 표시
+                addMessage(`📊 **${concept} 응용 범위**\n\n${applicationResult}`);
+                
+                // 다음 단계로 진행 (3초 후)
+                setTimeout(() => {
+                    addMessage('✅ **응용 범위 검색 완료!** 이제 이 개념을 바탕으로 응용 사고력 질문들을 만들어보겠습니다! 🎯');
+                    handleConceptInput(concept);
+                }, 3000);
+                
+            } catch (error) {
+                removeTypingIndicator();
+                console.error('Application concepts search error:', error);
+                
+                // 오류 시 기본 응용 범위 제시 후 계속 진행
+                addMessage('❌ 응용 범위 검색 중 오류가 발생했습니다. 기본 개념으로 계속 진행하겠습니다.');
+                
+                setTimeout(() => {
+                    handleConceptInput(concept);
+                }, 2000);
+            }
         }
         
         // 섹션 추출 헬퍼 함수
