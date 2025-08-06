@@ -7,9 +7,6 @@
     <!-- Tesseract.js for OCR -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
     
-    <!-- Chart.js for mathematical visualizations -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
     <!-- MathJax for LaTeX rendering -->
     <script>
         MathJax = {
@@ -48,19 +45,60 @@
 
         /* 헤더 */
         .chat-header {
-            background: #4f46e5;
+            background: #f97316;
             color: white;
             padding: 15px 20px;
             display: flex;
             align-items: center;
+            justify-content: space-between;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             z-index: 100;
+        }
+
+        .chat-header-left {
+            display: flex;
+            align-items: center;
         }
 
         .chat-header h1 {
             font-size: 18px;
             font-weight: 600;
             margin-left: 10px;
+        }
+
+        .chat-header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .question-counter {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .next-question-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .next-question-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .next-question-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         .tutor-profile {
@@ -242,71 +280,6 @@
         .inline-button:disabled {
             background: #9ca3af;
             cursor: not-allowed;
-        }
-
-        /* 수학 그래프/도형 시각화 영역 */
-        .math-visual {
-            margin: 15px 0;
-            padding: 15px;
-            background: #f8f9ff;
-            border: 2px dashed #e0e7ff;
-            border-radius: 12px;
-            text-align: center;
-        }
-        
-        .math-canvas {
-            max-width: 100%;
-            height: auto;
-            border-radius: 8px;
-            margin: 10px 0;
-            background: white;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-        
-        /* 개념 설명 박스 */
-        .concept-box {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 15px;
-            margin: 15px 0;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .concept-box::before {
-            content: '💡';
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            font-size: 24px;
-        }
-        
-        .concept-title {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-        
-        .concept-content {
-            font-size: 14px;
-            line-height: 1.5;
-        }
-
-        /* 시각화 설명 텍스트 */
-        .visual-description {
-            background: #fffbeb;
-            border: 1px solid #fbbf24;
-            border-radius: 8px;
-            padding: 12px;
-            margin: 10px 0;
-            font-size: 14px;
-            color: #92400e;
-        }
-
-        .visual-description::before {
-            content: '👁️ ';
-            font-weight: bold;
         }
 
         /* 하단 입력 영역 */
@@ -618,10 +591,16 @@
 <body>
     <!-- 헤더 -->
     <div class="chat-header">
-        <div class="tutor-profile">
-            <img src="ai-tutor-profile.png" alt="AI 수학 튜터" onerror="this.style.display='none'; this.parentNode.innerHTML='🧠';">
+        <div class="chat-header-left">
+            <div class="tutor-profile">
+                <img src="ai-tutor-profile.png" alt="AI 수학 튜터" onerror="this.style.display='none'; this.parentNode.innerHTML='🧠';">
+            </div>
+            <h1>AI 수학 튜터</h1>
         </div>
-        <h1>AI 수학 튜터</h1>
+        <div class="chat-header-right">
+            <div class="question-counter" id="questionCounter">추가 질문 제한 (0/5)</div>
+            <button class="next-question-btn" id="nextQuestionBtn" disabled>다음 질문</button>
+        </div>
     </div>
 
     <!-- 채팅 컨테이너 -->
@@ -707,6 +686,8 @@
         let waitingForAnswer = false;
         let isProcessingMessage = false; // 메시지 처리 중복 방지
         let isComposing = false; // 한글 입력기(IME) 조합 중 여부
+        let additionalQuestionCount = 0; // 추가 질문 카운트
+        let maxAdditionalQuestions = 5; // 최대 추가 질문 수
 
         // DOM 요소들
         const chatMessages = document.getElementById('chatMessages');
@@ -715,6 +696,8 @@
         const imageButton = document.getElementById('imageButton');
         const imageInput = document.getElementById('imageInput');
         const apiModal = document.getElementById('apiModal');
+        const questionCounter = document.getElementById('questionCounter');
+        const nextQuestionBtn = document.getElementById('nextQuestionBtn');
 
         // 현재 시간 문자열 반환
         function getCurrentTime() {
@@ -788,6 +771,20 @@
             }
         }
 
+        // 추가 질문 카운터 업데이트
+        function updateQuestionCounter() {
+            questionCounter.textContent = `추가 질문 제한 (${additionalQuestionCount}/${maxAdditionalQuestions})`;
+        }
+
+        // 다음 질문 버튼 상태 업데이트
+        function updateNextQuestionButton() {
+            if (currentPhase === 'quiz' && !waitingForAnswer && currentQuestionIndex < questions.length - 1) {
+                nextQuestionBtn.disabled = false;
+            } else {
+                nextQuestionBtn.disabled = true;
+            }
+        }
+
         // API 키 설정
         function setApiKey() {
             const input = document.getElementById('apiKeyInput');
@@ -817,26 +814,6 @@
             addWelcomeMessages();
         }
 
-        // API 키 유효성 검사
-        async function validateApiKey() {
-            if (!apiKey || !openai) {
-                return false;
-            }
-            
-            try {
-                // 간단한 테스트 요청으로 API 키 유효성 확인
-                const response = await openai.chat_completions_create({
-                    model: 'gpt-3.5-turbo',
-                    messages: [{ role: 'user', content: 'test' }],
-                    max_tokens: 5
-                });
-                return true;
-            } catch (error) {
-                console.error('API Key validation failed:', error);
-                return false;
-            }
-        }
-        
         // 환영 메시지 추가
         function addWelcomeMessages() {
             setTimeout(() => {
@@ -899,28 +876,15 @@
             }
         }
 
-        // 개념 입력 처리 (교육과정 기반 개선)
+        // 개념 입력 처리
         async function handleConceptInput(concept) {
             userConcept = concept;
             currentPhase = 'quiz';
             
-            // API 키 검증
-            if (!apiKey) {
-                addMessage('API 키가 설정되지 않았습니다. 먼저 API 키를 설정해주세요. 🔑');
-                if (apiModal) {
-                    apiModal.style.display = 'flex';
-                }
-                currentPhase = 'concept';
-                return;
-            }
-            
             const typing = addTypingIndicator();
             
             try {
-                // 1. 학년 수준 분석
-                const conceptAnalysis = analyzeConceptLevel(concept);
-                
-                // 2. GPT API로 질문 생성
+                // GPT API로 질문 생성
                 questions = await generateQuestions(concept);
                 
                 removeTypingIndicator();
@@ -929,20 +893,12 @@
                     throw new Error('질문 생성에 실패했습니다.');
                 }
                 
-                // 3. 교육과정 기반 개선 및 학년별 안내
-                const enhancement = enhanceQuestionWithCurriculum(concept, questions);
-                
-                // 4. 개선된 메시지 출력
-                addMessage(`훌륭합니다! 📚 **${enhancement.analysis.grade} 수준**의 개념을 바탕으로 **개념 이해 중심** 문제들을 준비했습니다.
-
-🎯 **학습 목표**: 수학적 사고력과 논리적 추론 능력 개발
-📊 **적정 연령**: ${enhancement.analysis.appropriateAge}  
-🔍 **학습 방식**: 시각적 자료와 단계별 사고로 진행
-
-차근차근 같이 탐구해보시죠! 🚀`);
+                addMessage('좋습니다! 입력해주신 내용을 바탕으로 심화 사고력 질문들을 만들었습니다. 차근차근 같이 풀어보시죠! 🎯');
                 
                 // 첫 번째 질문 시작
                 currentQuestionIndex = 0;
+                additionalQuestionCount = 0; // 새로운 퀴즈 시작 시 카운터 리셋
+                updateQuestionCounter();
                 setTimeout(() => {
                     displayQuestion();
                 }, 1000);
@@ -950,33 +906,8 @@
             } catch (error) {
                 removeTypingIndicator();
                 console.error('Error starting quiz:', error);
-                
-                // 더 구체적인 오류 메시지 제공
-                let errorMessage = '질문을 만드는 중에 문제가 생겼습니다. ';
-                
-                if (error.message && error.message.includes('401')) {
-                    errorMessage += 'API 키가 유효하지 않습니다. 새로운 API 키를 설정해주세요. 🔑';
-                } else if (error.message && error.message.includes('429')) {
-                    errorMessage += 'API 사용량이 초과되었습니다. 잠시 후 다시 시도해주세요. ⏰';
-                } else if (error.message && error.message.includes('500')) {
-                    errorMessage += 'OpenAI 서버에 일시적인 문제가 있습니다. 잠시 후 다시 시도해주세요. 🔄';
-                } else if (!apiKey) {
-                    errorMessage += 'API 키가 설정되지 않았습니다. 먼저 API 키를 설정해주세요. 🔑';
-                } else {
-                    errorMessage += `오류 내용: ${error.message || '알 수 없는 오류'}`;
-                }
-                
-                addMessage(errorMessage);
+                addMessage('질문을 만드는 중에 문제가 생겼습니다. 다시 시도해주시거나 API 키를 확인해주세요. 😅');
                 currentPhase = 'concept';
-                
-                // API 키가 없거나 유효하지 않은 경우 모달 표시
-                if (!apiKey || (error.message && error.message.includes('401'))) {
-                    setTimeout(() => {
-                        if (apiModal) {
-                            apiModal.style.display = 'flex';
-                        }
-                    }, 2000);
-                }
             }
         }
 
@@ -998,6 +929,9 @@
                 
                 addMessage(questions[currentQuestionIndex]);
                 waitingForAnswer = true;
+                // additionalQuestionCount는 누적되므로 리셋하지 않음
+                updateQuestionCounter();
+                updateNextQuestionButton();
             }, 500);
         }
 
@@ -1006,8 +940,13 @@
             const typing = addTypingIndicator();
             
             try {
-                // '다음' 입력 체크
-                if (answer.trim().toLowerCase() === '다음') {
+                // '다음' 입력 체크 (다양한 표현 포함)
+                const nextKeywords = ['다음', '다음 문제', '다음 질문', '다음으로', '넘어가', '다음 문제로', '다음 질문으로'];
+                const isNextRequest = nextKeywords.some(keyword => 
+                    answer.trim().toLowerCase().includes(keyword)
+                );
+                
+                if (isNextRequest) {
                     removeTypingIndicator();
                     
                     if (currentQuestionIndex === questions.length - 1) {
@@ -1031,11 +970,23 @@
                     
                     addMessage(feedback + nextInstruction);
                     waitingForAnswer = false; // 이제 추가 질문도 받을 수 있음
+                    updateNextQuestionButton();
                 } else {
+                    // 추가 질문 제한 확인
+                    if (additionalQuestionCount >= maxAdditionalQuestions) {
+                        removeTypingIndicator();
+                        addMessage('추가 질문 제한에 도달했습니다. 다음 질문으로 넘어가시거나 다른 질문을 해보세요! 😊');
+                        return;
+                    }
+                    
                     // 추가 질문: 해당 질문에 대한 답변 제공
                     const followUpAnswer = await generateFollowUpAnswer(questions[currentQuestionIndex], answer);
                     removeTypingIndicator();
                     addMessage(followUpAnswer + "\n\n더 궁금한 점이 있으시면 언제든 물어보세요.");
+                    
+                    // 추가 질문 카운터 증가
+                    additionalQuestionCount++;
+                    updateQuestionCounter();
                 }
                 
             } catch (error) {
@@ -1047,47 +998,53 @@
 
         // 다음 질문으로 이동
         function nextQuestion() {
-            currentQuestionIndex++;
-            displayQuestion();
+            if (currentQuestionIndex < questions.length - 1) {
+                currentQuestionIndex++;
+                displayQuestion();
+            } else {
+                finishQuiz();
+            }
         }
 
         // 추가 질문에 대한 답변 생성
         async function generateFollowUpAnswer(originalQuestion, followUpQuestion) {
-            const prompt = `당신은 친근하고 정확한 수학 선생님입니다. 학생의 추가 질문에 대해 자연스럽고 이해하기 쉽게 설명해주세요.
+            const prompt = `당신은 고등학교 수학의 깊이 있는 개념을 가르치는 전문가입니다. 학생의 추가 질문에 대해 통찰력 있는 답변을 주세요.
 
 **원래 질문:** ${originalQuestion}
 **학생의 추가 질문:** ${followUpQuestion}
 
-**답변 지침:**
-- 원래 문제와 연관지어서 설명하세요
-- 자연스러운 대화체로 친근하게 답변하세요
-- 수식이나 계산이 필요하면 단계적으로 쉽게 설명하세요
-- 구체적인 예시나 숫자를 들어 설명하세요
+## 깊이 있는 답변 지침
+1. **개념의 본질적 의미에 집중**
+   - 왜 그런지에 대한 근본적 이유 설명
+   - 수학적 사고의 논리적 과정 제시
+   - 다른 개념과의 연결점 강조
 
-**⚠️ 일관성 중요:** 
-- 이전에 제공한 피드백과 모순되지 않게 답변하세요
-- 같은 문제에 대해서는 항상 같은 결론을 유지하세요
-- 계산을 다시 확인하고 정확한 답변을 제공하세요
+2. **학생의 사고 과정 분석**
+   - 질문에서 드러나는 사고 수준 파악
+   - 개념적 혼동이 있는지 확인
+   - 다음 단계 학습 방향 제시
+
+3. **통찰력 있는 설명**
+   - 단순한 답변이 아닌, 깊이 있는 통찰 제공
+   - 수학적 사고력을 향상시키는 방향으로 안내
+   - 개념의 확장 가능성 제시
 
 **답변 예시:**
-"아, 좋은 질문이네요! 😊 판별식이 음수가 나오는 이유를 설명해드릴게요.
+"아, 정말 좋은 질문이네요! 😊 
 
-앞서 문제에서 두 함수를 연립하면 x² - 4x + 5 = 0이 나왔잖아요? 이때 판별식 D = b² - 4ac = 16 - 20 = -16이 됩니다. 
+극한값이 존재하지 않는 경우를 깊이 생각해보면, 이는 함수의 본질적 특성과 관련이 있어요. 함수가 그 점에서 '점프'를 하거나 '구멍'이 있을 때, 우리는 그 점에 가까워질 때 왼쪽에서 접근하는 값과 오른쪽에서 접근하는 값이 달라지는 것을 관찰할 수 있어요.
 
-판별식이 음수라는 건 이차방정식의 해가 실수 범위에서 존재하지 않는다는 뜻이에요. 쉽게 말해서 x축과 만나는 점이 없다는 거죠. 그래프로 생각해보면 포물선이 x축 위에 떠 있는 상태라고 보시면 됩니다.
-
-따라서 두 함수의 교점도 실제로는 존재하지 않는 거예요. 그래서 '교점의 x좌표가 음수'라는 조건 자체가 불가능한 상황인 셈이죠!"
+이는 단순히 계산상의 문제가 아니라, 함수의 연속성이라는 더 깊은 개념과 연결되어 있어요. 극한이 존재하지 않는다는 것은 함수가 그 점에서 '부드럽지 않다'는 의미이고, 이는 미분 가능성과도 밀접한 관련이 있어요."
 
 **중요한 점:**
-- 수식을 자연스럽게 설명에 포함시키세요
-- 비유나 그래프 설명을 활용하세요  
-- 학생이 이해할 수 있도록 단계별로 설명하세요
-- 자연스럽고 친근한 톤으로 마무리하세요
+- 수식이 필요한 경우만 간단하게 사용하세요
+- 개념의 본질적 의미에 집중한 설명을 하세요
+- 학생의 수학적 사고력을 향상시키는 방향으로 안내하세요
+- 자연스럽고 친근한 톤을 유지하세요
 
-**✅ 수학 기호 사용법:**
+**✅ 수학 기호 사용법 (필요한 경우만):**
 - 모든 수학식은 $...$ 안에 작성하세요
-- 예: $\\triangle ABC$, $\\angle A = 60^\\circ$, $f(x) = x^2 + 1$
-- 분수: $\\frac{a}{b}$, 제곱근: $\\sqrt{x}$, 극한: $\\lim_{x \\to 0} f(x)$`;
+- 예: $f(x) = x^2 + 1$, $\\lim_{x \\to 0} f(x)$, $\\frac{a}{b}$`;
 
             try {
                 const response = await openai.chat_completions_create({
@@ -1123,10 +1080,13 @@
                 currentPhase = 'concept';
                 currentQuestionIndex = 0;
                 questions = [];
+                additionalQuestionCount = 0; // 퀴즈 완료 시에만 카운터 리셋
+                updateQuestionCounter();
+                updateNextQuestionButton();
             }, 2000);
         }
 
-        // 이미지 업로드 처리 (개선된 버전)
+        // 이미지 업로드 처리
         function handleImageUpload(file) {
             if (!file || !file.type.startsWith('image/')) {
                 addMessage('이미지 파일만 올릴 수 있습니다! 📷', false);
@@ -1141,28 +1101,15 @@
             // 이미지 미리보기 추가
             const reader = new FileReader();
             reader.onload = function(e) {
-                const imagePreview = `<div class="image-preview-message"><img src="${e.target.result}" alt="업로드된 이미지"></div>`;
+                const imagePreview = `<div class="image-preview-message"><img src="${e.target.result}" alt="업로드된 이미지"></div>사진을 올려주셨네요! AI가 이미지를 분석해보겠습니다...`;
                 addMessage(imagePreview, true);
                 
-                // 현재 상황에 따라 다른 분석 수행
-                if (currentPhase === 'quiz' && waitingForAnswer) {
-                    // 퀴즈 진행 중이고 답변 대기 상태 → 답변 분석
-                    addMessage('학생 답안을 분석해보겠습니다... 📝');
-                    if (apiKey) {
-                        analyzeStudentAnswer(file);
-                    } else {
-                        addMessage('AI 답안 분석을 위해 먼저 API 키를 설정해주세요! 🔑');
-                        performOCR(file);
-                    }
-                } else {
-                    // 개념 입력 단계 → 문제 분석
-                    addMessage('수학 문제를 분석해보겠습니다... 🔍');
+                // API 키가 있으면 Vision API로 분석
                 if (apiKey) {
                     analyzeImageConcept(file);
                 } else {
                     addMessage('AI 이미지 분석을 위해 먼저 API 키를 설정해주세요! 🔑');
                     performOCR(file);
-                    }
                 }
             };
             reader.readAsDataURL(file);
@@ -1186,51 +1133,35 @@
                             content: [
                                 {
                                     type: 'text',
-                                    text: `이 수학 문제 이미지를 매우 꼼꼼히 분석해주세요. 텍스트, 수식, 도형, 그래프 모든 것을 정확히 읽어내야 합니다.
+                                    text: `이 수학 문제를 자세히 분석해주세요:
 
-**📝 1단계: 완전한 텍스트 추출**
-- 문제의 모든 텍스트를 한 글자도 빠뜨리지 말고 정확히 읽어서 그대로 작성하세요
-- 수식은 LaTeX 형식으로 정확히 변환하세요 (예: x^2, \\frac{a}{b}, \\sqrt{x})
-- 숫자, 기호, 단위 모두 정확히 표기하세요
-- 선택지가 있다면 ①②③④⑤ 또는 1)2)3)4)5) 형태로 모든 선택지를 나열하세요
+**1단계: 문제 내용 파악**
+- 문제에서 무엇을 묻고 있는지 구체적으로 설명
+- 주어진 조건이나 상황 파악
+- 사용된 수학적 개념이나 공식 확인
 
-**📊 2단계: 도형/그래프/표 상세 설명**
-- 그래프가 있다면: 축 이름, 눈금, 곡선 모양, 교점, 최고점/최저점 등을 구체적으로 설명
-- 도형이 있다면: 도형 종류, 변의 길이, 각도, 특별한 표시나 기호 등을 모두 설명
-- 표나 차트가 있다면: 행/열 제목, 모든 수치 데이터를 정확히 나열
-- 좌표평면이 있다면: x축, y축 범위, 눈금 간격, 그려진 점이나 선의 좌표
+**2단계: 핵심 개념 추출**
+- 이 문제가 다루는 핵심 수학 개념 (예: 이차함수, 극한, 미분, 삼각함수 등)
+- 문제 해결에 필요한 주요 수학적 원리나 성질
 
-**🎯 3단계: 핵심 개념 파악**
-- 이 문제가 다루는 메인 수학 개념 (예: 이차함수, 삼각함수, 확률, 기하 등)
-- 사용된 공식이나 정리
-- 문제에서 구하고자 하는 것이 무엇인지
+**3단계: 해결 과정 및 응용 포인트**
+- 문제 해결의 핵심 아이디어나 접근법
+- 이 문제와 유사한 상황이나 응용 가능한 다른 경우들
+- 학생들이 헷갈릴 수 있는 부분이나 주의사항
 
-**📋 출력 형식:**
+**출력 형식:**
+핵심 개념: [메인 수학 개념]
+문제 유형: [구체적인 문제 유형]
+해결 포인트: [핵심 해결 방법이나 아이디어]
+응용 범위: [관련된 다른 상황이나 확장 개념들]
 
-===== 문제 텍스트 =====
-[문제의 모든 텍스트를 정확히 그대로 작성]
+예시:
+핵심 개념: 이차함수의 최댓값과 최솟값
+문제 유형: 이차함수 f(x) = ax² + bx + c에서 주어진 구간에서의 최댓값 구하기
+해결 포인트: 대칭축과 구간의 위치 관계를 파악하여 경우를 나누어 해결
+응용 범위: 실생활 최적화 문제, 도함수를 이용한 최댓값 문제, 이차부등식과의 연관성
 
-===== 선택지 (있는 경우) =====
-① [선택지 1]
-② [선택지 2]
-③ [선택지 3]
-④ [선택지 4]
-⑤ [선택지 5]
-
-===== 도형/그래프 설명 =====
-[그림, 도형, 그래프가 있다면 매우 상세히 설명. 없으면 "없음"]
-
-===== 핵심 개념 =====
-[이 문제의 메인 수학 개념]
-
-===== 문제 유형 =====
-[구체적인 문제 유형과 구하는 것]
-
-**⚠️ 중요 지침:**
-- 추측하지 마세요. 보이는 것만 정확히 기록하세요.
-- 텍스트는 한국어/영어 구분 없이 보이는 그대로 작성하세요.
-- 수식 기호는 정확한 LaTeX 표기법을 사용하세요.
-- 도형의 크기, 각도, 위치 관계를 구체적으로 설명하세요.`
+위 형식으로 분석해주세요.`
                                 },
                                 {
                                     type: 'image_url',
@@ -1241,15 +1172,50 @@
                             ]
                         }
                     ],
-                    max_tokens: 1500
+                    max_tokens: 800
                 });
 
                 const analysisResult = response.choices[0].message.content.trim();
                 
                 removeTypingIndicator();
                 
-                // 새로운 섹션 기반 결과 처리
-                displayDetailedAnalysis(analysisResult);
+                // 분석 결과를 파싱하여 핵심 정보 추출
+                const conceptMatch = analysisResult.match(/핵심 개념:\s*(.+)/);
+                const typeMatch = analysisResult.match(/문제 유형:\s*(.+)/);
+                const pointMatch = analysisResult.match(/해결 포인트:\s*(.+)/);
+                const applicationMatch = analysisResult.match(/응용 범위:\s*(.+)/);
+                
+                const concept = conceptMatch ? conceptMatch[1].trim() : '수학 개념';
+                const problemType = typeMatch ? typeMatch[1].trim() : '';
+                const solutionPoint = pointMatch ? pointMatch[1].trim() : '';
+                const applicationRange = applicationMatch ? applicationMatch[1].trim() : '';
+                
+                // 분석 결과 표시
+                addMessage(`✅ ${concept} 문제를 분석했습니다.`);
+                
+                if (problemType) {
+                    setTimeout(() => {
+                        addMessage(`📋 문제 유형: ${problemType}`);
+                    }, 1000);
+                }
+                
+                if (solutionPoint) {
+                    setTimeout(() => {
+                        addMessage(`💡 해결 포인트: ${solutionPoint}`);
+                    }, 2000);
+                }
+                
+                if (applicationRange) {
+                    setTimeout(() => {
+                        addMessage(`🔄 응용 범위: ${applicationRange}`);
+                    }, 3000);
+                }
+                
+                // 자동으로 응용 개념 질문 생성 시작
+                setTimeout(() => {
+                    addMessage('이제 이 개념을 바탕으로 응용 사고력 질문들을 만들어보겠습니다! 🎯');
+                    handleConceptInput(analysisResult);
+                }, 4500);
                 
             } catch (error) {
                 removeTypingIndicator();
@@ -1257,247 +1223,6 @@
                 addMessage('AI 분석이 잘 안 되네요. 다른 방법으로 시도해보겠습니다! 🔄');
                 
                 // 실패 시 OCR로 대체
-                setTimeout(() => {
-                    performOCR(file);
-                }, 1000);
-            }
-            
-            isOCRProcessing = false;
-        }
-        
-        // 상세 분석 결과를 단계별로 표시하는 함수
-        function displayDetailedAnalysis(analysisResult) {
-            // 각 섹션을 파싱
-            const sections = {
-                problemText: extractSection(analysisResult, '===== 문제 텍스트 ====='),
-                choices: extractSection(analysisResult, '===== 선택지 (있는 경우) ====='),
-                figures: extractSection(analysisResult, '===== 도형/그래프 설명 ====='),
-                concept: extractSection(analysisResult, '===== 핵심 개념 ====='),
-                type: extractSection(analysisResult, '===== 문제 유형 =====')
-            };
-            
-            // 1단계: 문제 텍스트 표시
-            if (sections.problemText) {
-                addMessage(`📝 **문제 텍스트**\n\n${sections.problemText}`);
-            }
-            
-            // 2단계: 선택지 표시 (1초 후)
-            if (sections.choices && !sections.choices.includes('없음')) {
-                    setTimeout(() => {
-                    addMessage(`📋 **선택지**\n\n${sections.choices}`);
-                    }, 1000);
-                }
-                
-            // 3단계: 도형/그래프 설명 (2초 후)
-            if (sections.figures && !sections.figures.includes('없음')) {
-                    setTimeout(() => {
-                    addMessage(`📊 **도형/그래프 설명**\n\n${sections.figures}`);
-                    }, 2000);
-                }
-                
-            // 4단계: 핵심 개념 (3초 후)
-            if (sections.concept) {
-                    setTimeout(() => {
-                    addMessage(`🎯 **핵심 개념**: ${sections.concept}`);
-                    }, 3000);
-                }
-                
-            // 5단계: 문제 유형 (4초 후)
-            if (sections.type) {
-                setTimeout(() => {
-                    addMessage(`📚 **문제 유형**: ${sections.type}`);
-                }, 4000);
-            }
-            
-            // 6단계: 응용 범위 검색 (5초 후)
-            setTimeout(() => {
-                const concept = sections.concept || '수학 개념';
-                addMessage('🔍 **수학적 응용 개념 분석 중...** 관련된 수학 개념들과의 연결을 찾고 있습니다!');
-                findApplicationConcepts(concept, sections);
-            }, 5000);
-        }
-        
-        // 응용 개념 찾기 (인터넷 검색 기반)
-        async function findApplicationConcepts(concept, sections) {
-            const typing = addTypingIndicator();
-            
-            try {
-                // GPT를 활용해 인터넷에서 찾을 수 있는 응용 범위 생성
-                const response = await openai.chat_completions_create({
-                    model: 'gpt-3.5-turbo',
-                    messages: [
-                        {
-                            role: 'user',
-                            content: `"${concept}" 개념의 **수학적 응용 범위**를 4-6개 제시해주세요. 실생활이 아닌 **수학 개념 자체의 확장과 연결**에 집중하세요.
-
-**문제 정보:**
-- 핵심 개념: ${concept}
-- 문제 유형: ${sections.type || '미지정'}
-
-**요구사항:**
-1. **다른 접근 방법**: 같은 문제를 다른 수학적 방법으로 해결하는 방식
-2. **헷갈릴 수 있는 개념**: 비슷해 보이지만 다른 개념들과의 차이점
-3. **파생되는 개념**: 이 개념에서 확장되는 상위/하위 수학 개념들
-4. **관련 정리/공식**: 연결되는 다른 수학 정리나 공식들
-5. **개념적 함정**: 학생들이 자주 실수하는 개념적 오해들
-
-**출력 형식:**
-🔍 **수학적 응용 1: [개념적 연결 제목]**
-- 설명: [수학적 연결 내용]
-- 차이점/주의사항: [헷갈릴 수 있는 부분이나 주의할 점]
-
-🔍 **수학적 응용 2: [개념적 연결 제목]**
-- 설명: [수학적 연결 내용]  
-- 차이점/주의사항: [헷갈릴 수 있는 부분이나 주의할 점]
-
-... (4-6개까지)
-
-**예시:**
-만약 "이차함수"라면:
-🔍 **수학적 응용 1: 이차방정식과의 관계**
-- 설명: 이차함수 f(x) = ax² + bx + c에서 f(x) = 0이 이차방정식
-- 차이점/주의사항: 함수는 대응관계, 방정식은 해를 구하는 것. x절편과 해가 같다는 걸 혼동하기 쉬움
-
-🔍 **수학적 응용 2: 완전제곱식과 꼭짓점 형태**
-- 설명: f(x) = a(x-p)² + q 형태로 변형하여 꼭짓점 (p,q) 바로 확인
-- 차이점/주의사항: 일반형에서 꼭짓점 형태로 바꿀 때 부호 실수 주의
-
-🔍 **수학적 응용 3: 판별식과 그래프의 관계**
-- 설명: D = b² - 4ac로 x축과의 교점 개수 판단 (D>0: 2개, D=0: 1개, D<0: 0개)
-- 차이점/주의사항: 판별식은 이차방정식의 실근 개수이지 이차함수 자체의 성질이 아님`
-                        }
-                    ],
-                    max_tokens: 1200,
-                    temperature: 0.7
-                });
-
-                const applicationResult = response.choices[0].message.content.trim();
-                
-                removeTypingIndicator();
-                
-                // 수학적 응용 결과 표시
-                addMessage(`🔍 **${concept} 수학적 응용 개념들**\n\n${applicationResult}`);
-                
-                // 다음 단계로 진행 (3초 후)
-                setTimeout(() => {
-                    addMessage('✅ **수학적 응용 분석 완료!** 이제 이 개념들을 바탕으로 응용 사고력 질문들을 만들어보겠습니다! 🎯');
-                    handleConceptInput(concept);
-                }, 3000);
-                
-            } catch (error) {
-                removeTypingIndicator();
-                console.error('Application concepts search error:', error);
-                
-                // 오류 시 기본 개념으로 계속 진행
-                addMessage('❌ 수학적 응용 분석 중 오류가 발생했습니다. 기본 개념으로 계속 진행하겠습니다.');
-                
-                setTimeout(() => {
-                    handleConceptInput(concept);
-                }, 2000);
-            }
-        }
-        
-        // 섹션 추출 헬퍼 함수
-        function extractSection(text, sectionHeader) {
-            const startIndex = text.indexOf(sectionHeader);
-            if (startIndex === -1) return null;
-            
-            const contentStart = startIndex + sectionHeader.length;
-            const nextSectionIndex = text.indexOf('=====', contentStart);
-            
-            if (nextSectionIndex === -1) {
-                return text.substring(contentStart).trim();
-            } else {
-                return text.substring(contentStart, nextSectionIndex).trim();
-            }
-        }
-
-        // Vision API로 학생 답안 분석
-        async function analyzeStudentAnswer(file) {
-            if (isOCRProcessing) return;
-            
-            isOCRProcessing = true;
-            const typing = addTypingIndicator();
-            
-            try {
-                const base64Image = await fileToBase64(file);
-                const currentQuestion = questions[currentQuestionIndex];
-                
-                const response = await openai.chat_completions_create({
-                    model: 'gpt-4o-mini',
-                    messages: [
-                        {
-                            role: 'user',
-                            content: [
-                                {
-                                    type: 'text',
-                                    text: `학생이 다음 문제에 대해 사진으로 답안을 제출했습니다. 답안을 정확히 분석해주세요.
-
-**문제:** ${currentQuestion}
-
-**분석 요구사항:**
-1. **수식 인식**: 학생이 작성한 모든 수식, 계산 과정, 답을 정확히 읽어주세요
-2. **단계별 검토**: 각 계산 단계가 올바른지 확인해주세요  
-3. **정답 여부**: 최종 답이 맞는지 틀렸는지 판단해주세요
-4. **오류 분석**: 틀렸다면 어느 부분에서 실수했는지 구체적으로 지적해주세요
-5. **수학적 정확성**: 공식 사용, 계산 과정, 논리적 흐름이 올바른지 평가해주세요
-
-**응답 형식:**
-학생 답안: [인식된 수식과 계산 과정]
-정답 여부: [맞음/틀림]
-오류 분석: [구체적인 실수 지점과 이유]
-올바른 해법: [정확한 계산 과정]
-피드백: [격려와 함께 개선점 제시]
-
-**중요사항:**
-- 수식 표기는 LaTeX 형식으로 정확히 해주세요 ($...$ 사용)
-- 계산 실수와 개념 오해를 명확히 구분해서 설명해주세요
-- 수식의 각 단계를 자세히 검토하고 설명해주세요
-- 올바른 계산 과정은 단계별로 명시해주세요
-- 학생의 접근 방법이 올바르다면 구체적으로 칭찬해주세요
-- 틀렸어도 격려하는 톤으로 정확한 해법을 제시해주세요
-
-**수식 검토 포인트:**
-- 공식 적용의 정확성
-- 계산 과정의 논리적 순서
-- 대수적 조작의 정확성
-- 최종 답의 형태와 정확성
-- 단위나 조건 확인`
-                                },
-                                {
-                                    type: 'image_url',
-                                    image_url: {
-                                        url: base64Image
-                                    }
-                                }
-                            ]
-                        }
-                    ],
-                    max_tokens: 1500,
-                    temperature: 0.3
-                });
-
-                removeTypingIndicator();
-                
-                const analysisResult = response.choices[0].message.content;
-                
-                // 답안 분석 결과를 피드백으로 제공
-                addMessage(analysisResult);
-                
-                // 추가 질문 받을 수 있도록 상태 변경
-                waitingForAnswer = false;
-                
-                // 시각적 힌트가 있다면 추가
-                setTimeout(() => {
-                    addVisualHintsFromFeedback(analysisResult);
-                }, 1000);
-                
-            } catch (error) {
-                removeTypingIndicator();
-                console.error('Student Answer Analysis Error:', error);
-                addMessage('답안 분석 중 오류가 발생했습니다. 다시 시도해주세요. 😅');
-                
-                // 실패 시 OCR로 대체하여 텍스트라도 추출
                 setTimeout(() => {
                     performOCR(file);
                 }, 1000);
@@ -1571,298 +1296,49 @@
             isOCRProcessing = false;
         }
 
-        // 시각적 요소 생성 함수들
-        function createMathVisual(type, data) {
-            const visualDiv = document.createElement('div');
-            visualDiv.className = 'math-visual';
-            
-            switch(type) {
-                case 'graph':
-                    return createGraphVisual(visualDiv, data);
-                case 'geometry':
-                    return createGeometryVisual(visualDiv, data);
-                case 'concept':
-                    return createConceptBox(visualDiv, data);
-                default:
-                    return null;
-            }
-        }
-        
-        function createGraphVisual(container, data) {
-            const canvas = document.createElement('canvas');
-            canvas.className = 'math-canvas';
-            canvas.width = 400;
-            canvas.height = 300;
-            container.appendChild(canvas);
-            
-            const ctx = canvas.getContext('2d');
-            
-            // 좌표계 그리기
-            drawCoordinateSystem(ctx, canvas.width, canvas.height);
-            
-            // 함수 그래프 그리기
-            if (data.function) {
-                drawFunction(ctx, data.function, canvas.width, canvas.height);
-            }
-            
-            return container;
-        }
-        
-        function createGeometryVisual(container, data) {
-            const canvas = document.createElement('canvas');
-            canvas.className = 'math-canvas';
-            canvas.width = 300;
-            canvas.height = 300;
-            container.appendChild(canvas);
-            
-            const ctx = canvas.getContext('2d');
-            
-            // 도형 그리기
-            if (data.shape === 'triangle') {
-                drawTriangle(ctx, data);
-            } else if (data.shape === 'circle') {
-                drawCircle(ctx, data);
-            }
-            
-            return container;
-        }
-        
-        function createConceptBox(container, data) {
-            container.className = 'concept-box';
-            container.innerHTML = `
-                <div class="concept-title">${data.title}</div>
-                <div class="concept-content">${data.content}</div>
-            `;
-            return container;
-        }
-        
-        // 좌표계 그리기
-        function drawCoordinateSystem(ctx, width, height) {
-            const centerX = width / 2;
-            const centerY = height / 2;
-            
-            ctx.strokeStyle = '#ddd';
-            ctx.lineWidth = 1;
-            
-            // X축
-            ctx.beginPath();
-            ctx.moveTo(0, centerY);
-            ctx.lineTo(width, centerY);
-            ctx.stroke();
-            
-            // Y축
-            ctx.beginPath();
-            ctx.moveTo(centerX, 0);
-            ctx.lineTo(centerX, height);
-            ctx.stroke();
-            
-            // 눈금
-            ctx.strokeStyle = '#eee';
-            for (let i = -5; i <= 5; i++) {
-                if (i !== 0) {
-                    const x = centerX + i * 30;
-                    const y = centerY + i * 30;
-                    
-                    // 세로 눈금선
-                    if (x >= 0 && x <= width) {
-                        ctx.beginPath();
-                        ctx.moveTo(x, 0);
-                        ctx.lineTo(x, height);
-                        ctx.stroke();
-                    }
-                    
-                    // 가로 눈금선
-                    if (y >= 0 && y <= height) {
-                        ctx.beginPath();
-                        ctx.moveTo(0, y);
-                        ctx.lineTo(width, y);
-                        ctx.stroke();
-                    }
-                }
-            }
-        }
-        
-        // 함수 그래프 그리기
-        function drawFunction(ctx, func, width, height) {
-            const centerX = width / 2;
-            const centerY = height / 2;
-            const scale = 30;
-            
-            ctx.strokeStyle = '#4f46e5';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            
-            let firstPoint = true;
-            for (let screenX = 0; screenX < width; screenX += 2) {
-                const mathX = (screenX - centerX) / scale;
-                const mathY = func(mathX);
-                const screenY = centerY - mathY * scale;
-                
-                if (screenY >= 0 && screenY <= height) {
-                    if (firstPoint) {
-                        ctx.moveTo(screenX, screenY);
-                        firstPoint = false;
-                    } else {
-                        ctx.lineTo(screenX, screenY);
-                    }
-                }
-            }
-            ctx.stroke();
-        }
-        
-        // 삼각형 그리기
-        function drawTriangle(ctx, data) {
-            const centerX = 150;
-            const centerY = 150;
-            
-            ctx.strokeStyle = '#4f46e5';
-            ctx.fillStyle = 'rgba(79, 70, 229, 0.1)';
-            ctx.lineWidth = 2;
-            
-            // 삼각형 좌표
-            const A = { x: centerX, y: centerY - 50 };
-            const B = { x: centerX - 60, y: centerY + 50 };
-            const C = { x: centerX + 60, y: centerY + 50 };
-            
-            // 삼각형 그리기
-            ctx.beginPath();
-            ctx.moveTo(A.x, A.y);
-            ctx.lineTo(B.x, B.y);
-            ctx.lineTo(C.x, C.y);
-            ctx.closePath();
-            ctx.fill();
-            ctx.stroke();
-            
-            // 꼭짓점 라벨
-            ctx.fillStyle = '#333';
-            ctx.font = '16px Arial';
-            ctx.fillText('A', A.x - 10, A.y - 10);
-            ctx.fillText('B', B.x - 20, B.y + 20);
-            ctx.fillText('C', C.x + 10, C.y + 20);
-        }
-        
-        // 원 그리기
-        function drawCircle(ctx, data) {
-            const centerX = 150;
-            const centerY = 150;
-            const radius = data.radius || 50;
-            
-            ctx.strokeStyle = '#4f46e5';
-            ctx.fillStyle = 'rgba(79, 70, 229, 0.1)';
-            ctx.lineWidth = 2;
-            
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-            ctx.fill();
-            ctx.stroke();
-            
-            // 반지름 표시
-            ctx.strokeStyle = '#333';
-            ctx.setLineDash([5, 5]);
-            ctx.beginPath();
-            ctx.moveTo(centerX, centerY);
-            ctx.lineTo(centerX + radius, centerY);
-            ctx.stroke();
-            ctx.setLineDash([]);
-            
-            ctx.fillStyle = '#333';
-            ctx.font = '14px Arial';
-            ctx.fillText(`r = ${data.radius || 'r'}`, centerX + radius/2 - 10, centerY - 10);
-        }
-
-        // GPT API로 질문 생성 (개선된 버전)
+        // GPT API로 질문 생성
         async function generateQuestions(concept) {
-            const prompt = `당신은 중고등학생을 위한 수학 교육 전문가입니다. 2022 개정 교육과정에 맞춰 **개념 이해 중심**의 문제를 생성하세요.
+            const prompt = `당신은 고등학교 수학 문제를 분석하고 학생의 개념적 이해를 유도하는 전문가입니다. 다음 수학 문제를 보고, 단순한 풀이가 아니라 학생의 개념적 이해를 유도하고 사고력을 평가할 수 있는 질문을 3가지 범주로 나누어 작성하세요.
 
-**학습 내용 분석:**
+**분석된 개념/문제:**
 ${concept}
 
-**🎯 핵심 교육 목표: 깊이 있는 개념 이해**
+## 범주별 질문 생성 규칙
 
-**🚫 경시대회/올림피아드 스타일 금지:**
-- "모순을 찾으세요", "불가능한 조건", "오류를 발견하세요" 같은 트릭 문제 NO
-- 복잡한 계산이나 어려운 공식 암기 위주 문제 NO
-- 학년 수준을 벗어나는 고난도 문제 NO
+### 1. [개념 진단 질문]
+- 이 문제에서 반드시 알아야 할 개념을 학생이 제대로 이해하고 있는지를 확인하기 위한 질문
+- 문제의 핵심 개념이 무엇인지 파악하고, 그 개념의 이해도를 점검하는 질문
+- 수식/도형 중심 질문을 우선시
 
-**✅ 개념 이해 중심 문제 원칙:**
-1. **순수 수학적 접근**: 수학 개념 자체의 이해에 집중
-2. **단계별 사고**: 작은 단계부터 차근차근 이해할 수 있는 구조
-3. **시각적 이해**: 그래프, 도형, 표 등으로 시각화 가능한 문제
-4. **개념 적용**: 공식 암기가 아닌, 왜 그런지 이해하고 적용하는 문제
-5. **학년 적합성**: 해당 학년에서 배우는 개념만 사용
-6. **논리적 사고**: 수학적 추론과 논증 능력 개발
+### 2. [오개념 탐색 질문]
+- 학생이 자주 하는 실수, 헷갈리는 개념, 착각하기 쉬운 요소를 짚고 그것을 점검할 수 있는 질문
+- 개념적 혼동이 발생할 수 있는 지점을 명확히 파악하고 점검하는 질문
+- 왜 그런 착각을 하는지 근본 원인을 탐색하는 질문
 
-**✅ 문제 유형별 가이드:**
+### 3. [조건 변경 질문]
+- 문제의 수치를 바꾸거나 조건을 수정했을 때 결과나 풀이 방법이 어떻게 달라지는지를 유도하는 질문
+- 조건 변화에 따른 본질적 변화를 탐구하는 질문
+- 일반화와 특수화의 관계를 이해하는 질문
 
-**기하 문제 (삼각형, 원, 다각형):**
-- 도형의 성질과 관계를 탐구하는 문제
-- 그림을 그려서 이해할 수 있는 직관적 문제
-- 각도와 변의 관계, 넓이와 둘레의 개념 문제
+## 조건
+- 문제의 본질에 충실해야 함
+- 수식/도형 중심 질문을 우선시
+- "왜 그럴까?" 같은 추상적이고 주관적인 질문은 지양
+- 학생의 응답을 통해 개념 이해 여부가 명확히 드러나야 함
+- 각 범주당 1~2개의 질문
 
-**함수 문제:**
-- 함수의 그래프와 성질을 분석하는 문제
-- 그래프를 보고 함수의 특성을 파악하는 문제
-- 함수의 변화율과 극값을 구하는 문제
+## 응답 형식
+[개념 진단 질문]
+• [구체적인 개념 진단 질문 1]
+• [구체적인 개념 진단 질문 2]
 
-**확률/통계 문제:**
-- 확률 계산과 경우의 수 문제
-- 데이터 분석과 통계량 계산 문제
-- 확률분포와 기댓값 관련 문제
+[오개념 탐색 질문]
+• [구체적인 오개념 탐색 질문 1]
+• [구체적인 오개념 탐색 질문 2]
 
-**✅ 종합적 사고력 중심 문제 예시:**
-
-**🧠 심화 탐구형 문제 예시:**
-
-**기하학적 사고 확장:**
-- "두 정사각형이 한 꼭짓점을 공유하며 교차하고 있습니다. 작은 정사각형의 한 변이 3, 큰 정사각형의 한 변이 5일 때: (1) 두 정사각형이 겹치는 영역의 넓이는 어떻게 구할 수 있을까요? (2) 교차각이 달라지면 겹치는 영역도 달라질 텐데, 어떤 각도일 때 겹치는 영역이 최대가 될까요? (3) 이 원리를 실생활에서 어디에 응용할 수 있을지 생각해보세요." [VISUAL: 교차하는 정사각형들과 겹치는 영역]
-
-**함수와 방정식의 연결 탐구:**
-- "어떤 회사의 월간 수익이 $P(x) = -2x^2 + 12x - 10$ (단위: 만원, x는 월)로 나타납니다. (1) 언제 수익이 0이 될까요? (2) 최대 수익은 언제 얼마나 발생할까요? (3) 만약 이 회사가 월 8만원 이상의 수익을 유지하려면 어느 기간 동안 운영해야 할까요? (4) 수익 함수의 계수들(-2, 12, -10)이 각각 어떤 의미를 가지는지 해석해보세요." [VISUAL: 포물선 수익 그래프와 임계값 표시]
-
-**확률 패턴 탐구:**
-- "동전 3개를 동시에 던질 때 나올 수 있는 모든 경우를 분석해봅시다. (1) 앞면이 2개 나올 확률은? (2) 적어도 앞면이 1개 나올 확률은? (3) 이제 동전 개수를 4개, 5개로 늘려보면 '적어도 앞면 1개' 확률은 어떻게 변할까요? 패턴을 찾아보세요. (4) 만약 동전이 n개라면 이 확률을 일반화할 수 있을까요?" [VISUAL: 동전 던지기 결과 트리와 확률 패턴]
-
-**삼각비 실용 탐구:**
-- "산 정상에서 두 마을을 내려다봅니다. 마을A는 산 정상에서 북쪽으로 30° 내려다보는 방향에 거리 5km, 마을B는 동쪽으로 45° 내려다보는 방향에 거리 4km에 있습니다. (1) 두 마을 사이의 직선거리는? (2) 산 정상에서 보는 두 마을 사이의 각도는? (3) 만약 마을A에서 마을B로 도로를 낼 때, 산을 우회하는 도로와 직선 터널 중 어느 것이 더 효율적일까요? 각각의 장단점을 분석해보세요." [VISUAL: 산과 두 마을의 3D 위치관계]
-
-**❌ 절대 피해야 할 문제 스타일:**
-- 경시대회/올림피아드 스타일의 트릭 문제
-- "모순을 찾으세요", "오류를 발견하세요" 같은 함정 문제
-- 복잡한 계산만 요구하는 문제
-- 학년 수준을 벗어나는 고급 개념 혼용
-- 공식 암기만으로 풀 수 있는 기계적 문제
-
-**✅ 시각화 요소 포함 지침:**
-- 도형 문제는 반드시 [VISUAL: 삼각형/원/사각형 등] 표시
-- 함수 문제는 반드시 [VISUAL: 그래프] 표시
-- 통계 문제는 [VISUAL: 표/차트] 표시
-- 실생활 상황은 [VISUAL: 상황 설명 그림] 표시
-
-**응답 형식:**
-각 문제마다 다음 구조로 작성:
-1. [개념 이해 중심 실생활 연결 문제] [VISUAL: 시각화 유형]
-2. [단계별 사고를 유도하는 문제] [VISUAL: 시각화 유형]  
-3. [그래프/도형 해석 문제] [VISUAL: 시각화 유형]
-4. [응용 및 확장 사고 문제] [VISUAL: 시각화 유형]
-5. [창의적 문제 해결 문제] [VISUAL: 시각화 유형]
-
-**🎯 최종 검증 체크리스트:**
-1. ✅ 경시대회 스타일 없음 (모순/함정/트릭 문제 제거)
-2. ✅ 실생활 연결성 있음
-3. ✅ 학년 수준 적합성 확인
-4. ✅ 시각화 요소 [VISUAL] 태그 포함
-5. ✅ 개념 이해에 집중 (단순 계산 지양)
-6. ✅ 단계별 사고 유도
-7. ✅ 친숙하고 흥미로운 상황 설정
-
-**🌟 문제 생성 최고 원칙:**
-"학생이 이 문제를 풀면서 수학 개념을 더 깊이 이해하고, 실생활에서 수학이 어떻게 쓰이는지 깨달을 수 있는가?"
-
-**✅ 수학 기호 사용법:**
-- 모든 수학식은 $...$ 안에 작성하세요
-- 삼각형: $\\triangle ABC$, 각도: $\\angle A = 60^\\circ$
-- 함수: $f(x) = x^2 + 1$, 분수: $\\frac{a}{b}$
-- 제곱근: $\\sqrt{x}$, 극한: $\\lim_{x \\to 0} f(x)$`;
+[조건 변경 질문]
+• [구체적인 조건 변경 질문 1]
+• [구체적인 조건 변경 질문 2]`;
 
             try {
                 const response = await openai.chat_completions_create({
@@ -1873,195 +1349,107 @@ ${concept}
                             content: prompt
                         }
                     ],
-                    max_tokens: 1200,
-                    temperature: 0.8
+                    max_tokens: 800,
+                    temperature: 0.7
                 });
 
                 const content = response.choices[0].message.content;
                 
-                // 질문 추출 및 시각화 요소 처리
-                const questionLines = content.split('\n').filter(line => 
-                    line.trim() && /^\d+\./.test(line.trim())
-                );
+                // 질문 추출 (새로운 형식에 맞게)
+                const questions = [];
+                const lines = content.split('\n');
                 
-                // 시각화 요소가 포함된 질문들을 처리
-                const processedQuestions = questionLines.map(line => {
-                    const questionText = line.replace(/^\d+\.\s*/, '').trim();
-                    
-                    // [VISUAL: ...] 태그 처리
-                    const visualMatch = questionText.match(/\[VISUAL:\s*([^\]]+)\]/);
-                    if (visualMatch) {
-                        const visualType = visualMatch[1].toLowerCase();
-                        const cleanQuestion = questionText.replace(/\[VISUAL:[^\]]+\]/, '').trim();
-                        
-                        // 시각화 요소 추가 로직은 나중에 displayQuestion에서 처리
-                        return {
-                            text: cleanQuestion,
-                            visual: visualType
-                        };
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (line.startsWith('•') || line.startsWith('-')) {
+                        const question = line.replace(/^[•\-]\s*/, '').trim();
+                        if (question.length > 0) {
+                            questions.push(question);
+                        }
                     }
-                    
-                    return {
-                        text: questionText,
-                        visual: null
-                    };
-                });
+                }
                 
-                return processedQuestions.map(q => q.text); // 일단 텍스트만 반환 (나중에 시각화 추가)
+                // 유효한 질문이 없으면 기본 질문 사용
+                if (questions.length === 0) {
+                    console.warn('No valid questions generated, using fallback questions');
+                    return generateFallbackQuestions(concept);
+                }
+                
+                return questions;
                 
             } catch (error) {
                 console.error('GPT API Error:', error);
-                throw error;
+                console.warn('Using fallback questions due to API error');
+                return generateFallbackQuestions(concept);
             }
         }
 
-        // 시각화 요소를 포함한 질문 표시 (개선된 버전)
-        function displayQuestion() {
-            setTimeout(() => {
-                addQuestionDivider();
-                
-                const currentQuestion = questions[currentQuestionIndex];
-                
-                // 먼저 텍스트 질문 추가
-                addMessage(currentQuestion);
-                
-                // 시각화 요소 감지 및 추가
-                setTimeout(() => {
-                    addVisualElementsForQuestion(currentQuestion);
-                }, 500);
-                
-                waitingForAnswer = true;
-            }, 500);
-        }
-        
-        // 질문에 맞는 시각화 요소 추가
-        function addVisualElementsForQuestion(questionText) {
-            const chatMessages = document.getElementById('chatMessages');
+        // 기본 질문 생성 (GPT API 실패 시 사용)
+        function generateFallbackQuestions(concept) {
+            const fallbackQuestions = [
+                "이 문제에서 핵심이 되는 수학적 개념은 무엇인가요?",
+                "이 개념을 적용할 때 주의해야 할 점은 무엇인가요?",
+                "학생들이 이 개념에서 자주 하는 실수는 무엇인가요?",
+                "조건을 바꿔서 이 문제를 풀어보면 어떤 차이가 있나요?",
+                "이 개념의 일반화된 형태는 어떻게 될까요?"
+            ];
             
-            // 기하 문제 감지
-            if (questionText.includes('삼각형') || questionText.includes('triangle') || questionText.includes('운동장') && questionText.includes('직사각형')) {
-                const visual = createMathVisual('geometry', { shape: 'triangle' });
-                if (visual) {
-                    chatMessages.appendChild(visual);
-                    
-                    // 시각적 설명 추가
-                    const description = document.createElement('div');
-                    description.className = 'visual-description';
-                    description.textContent = '위 그림을 참고하여 문제를 해결해보세요.';
-                    chatMessages.appendChild(description);
-                }
-            }
-            
-            // 함수/그래프 문제 감지
-            if (questionText.includes('그래프') || questionText.includes('함수') || questionText.includes('온도 변화') || questionText.includes('y =')) {
-                // 일차함수 예시
-                if (questionText.includes('y = -2x + 6')) {
-                    const visual = createMathVisual('graph', { 
-                        function: (x) => -2*x + 6 
-                    });
-                    if (visual) {
-                        chatMessages.appendChild(visual);
-                        
-                        const description = document.createElement('div');
-                        description.className = 'visual-description';
-                        description.textContent = '위 그래프는 y = -2x + 6 함수를 나타냅니다. x축과 만나는 점을 찾아보세요.';
-                        chatMessages.appendChild(description);
-                    }
-                }
-                
-                // 포물선 함수
-                if (questionText.includes('h = -5t') || questionText.includes('농구공')) {
-                    const visual = createMathVisual('graph', { 
-                        function: (t) => -5*t*t + 10*t + 2 
-                    });
-                    if (visual) {
-                        chatMessages.appendChild(visual);
-                        
-                        const description = document.createElement('div');
-                        description.className = 'visual-description';
-                        description.textContent = '위 그래프는 공의 높이 변화를 나타냅니다. 최고점과 x축과의 교점을 확인해보세요.';
-                        chatMessages.appendChild(description);
-                    }
-                }
-            }
-            
-            // 개념 설명 박스 추가 (특정 키워드 감지시)
-            if (questionText.includes('피타고라스') || questionText.includes('직각삼각형')) {
-                const conceptVisual = createMathVisual('concept', {
-                    title: '피타고라스 정리',
-                    content: '직각삼각형에서 빗변의 제곱은 두 직각변의 제곱의 합과 같습니다. c² = a² + b²'
-                });
-                if (conceptVisual) {
-                    chatMessages.appendChild(conceptVisual);
-                }
-            }
-            
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            return fallbackQuestions;
         }
 
-        // GPT API로 피드백 생성 (자연스러운 대화형 개선 버전)
+        // GPT API로 피드백 생성
         async function generateFeedback(question, answer) {
-            const prompt = `당신은 친근하고 똑똑한 수학 선생님입니다. 학생과 자연스럽게 대화하듯이 피드백을 주세요. **딱딱한 형식은 절대 사용하지 마세요.**
+            const prompt = `당신은 고등학교 수학을 가르치는 친근한 선생님입니다. 학생의 답변을 분석하고 다음 조건에 맞는 피드백을 작성해주세요.
 
-**문제:** ${question}
+**학생이 답한 질문:** ${question}
 **학생 답변:** ${answer}
 
-**🎯 자연스러운 피드백 지침:**
+## 피드백 작성 조건
+- 정답 여부를 분명하게 알려주세요 (정답입니다 / 오답입니다)
+- 학생이 어떤 개념을 혼동했는지 유추해 설명해 주세요
+- 그 개념이 실제로 무엇을 의미하는지 친절하고 상세하게 설명해 주세요
+- 다음에는 어떻게 생각해야 하는지 팁을 알려주세요
+- 사고 흐름, 분석 로그 등 내부적인 정보는 숨기고 결과만 말해주세요
+- 말투는 설명적이고 부드럽게, 너무 딱딱하지 않게 해주세요
 
-**1. 학생의 노력 인정하기**
-- "좋은 시도였어요!" "거의 다 맞았네요!" "접근이 정말 좋았어요!"
-- 학생이 맞힌 부분은 구체적으로 칭찬
+## 응답 형식
 
-**2. 오류가 있다면 자연스럽게 안내**
-- "아, 여기서 조금 다르게 생각해볼까요?"
-- "이 부분에서 실수가 있었는데, 함께 고쳐볼까요?"
-- 비난하지 말고 함께 해결하는 톤
+### 정답인 경우:
+✅ 정답입니다!
 
-**3. 핵심 개념을 쉽게 설명**
-- 어려운 용어 대신 쉬운 말로 설명
-- "이 문제의 핵심은 사실 이거예요..."
-- 왜 그런지 이유를 납득할 수 있게 설명
+[학생의 정확한 이해에 대한 칭찬]
 
-**4. 시각적 도움 제공 (단, 자연스럽게)**
-- "그림으로 보면 이해가 쉬울 거예요"
-- "실제로 그려보면 이런 모양이에요"
-- [VISUAL_HINT: 구체적 설명] 형태로 시각화 요청
+[해당 개념의 중요성과 의미]
 
-**5. 더 깊게 탐구하도록 유도**
-- "이제 이걸 응용해서 더 재미있는 걸 해볼까요?"
-- "이 개념이 다른 곳에서도 어떻게 쓰이는지 궁금하지 않아요?"
+[다음 단계 학습 방향]
 
-**🚫 절대 하지 말 것:**
-- [정답 여부], [핵심 개념] 같은 딱딱한 형식 사용 금지
-- 너무 긴 단계별 나열 금지
-- 교과서적인 설명 금지
-- "**단계 1**: ~" 같은 기계적 형식 금지
+### 오답인 경우:
+❌ 오답이에요.
 
-**✅ 자연스러운 피드백 예시:**
+[학생의 오개념 분석]
 
-"오, 정말 잘했어요! 👍 이등변삼각형의 성질을 정확히 파악하셨네요.
+[정확한 개념 설명]
 
-사실 이 문제에서 핵심은 '두 변이 같으면 그 두 변이 만드는 각도 같다'는 거예요. 마치 균형 잡힌 시소처럼요!
+[학생이 다음에 어떻게 접근해야 하는지 팁]
 
-아하, 그런데 계산에서 살짝 실수가 있었어요. 전체가 180°이니까, 30° + 두 개의 같은 각 = 180°가 되어야 해요. 그러면 남은 150°를 2로 나누면... 75°씩이 나오죠!
+**예시 (오답):**
+❌ 오답이에요.
 
-[VISUAL_HINT: 이등변삼각형의 두 밑각이 같다는 것을 보여주는 그림]
+각이 같다고 해서 무조건 합동이 되는 것은 아니에요. 두 삼각형이 합동이 되려면 '대응하는 세 변의 길이가 같고, 대응하는 세 각의 크기가 같을 때'여야 해요.
 
-이런 식으로 생각하면 어떨까요? 이등변삼각형을 반으로 접으면 완전히 겹쳐져요. 그게 바로 두 각이 같다는 증거거든요!
+각이 같다고 해서 반드시 합동이 되는 것은 아니에요. 예를 들어, 크기가 다른 두 정삼각형은 각이 모두 60도로 같지만 합동이 아니에요. 변의 길이도 함께 확인해야 해요.
 
-더 재미있는 건, 이 원리가 정삼각형에서도 똑같이 적용된다는 거예요. 정삼각형의 모든 각이 60°인 이유도 같은 원리랍니다. 궁금하면 한 번 계산해보세요! 😊"
+다음에는 '각이 같다'는 것만으로는 부족하고, '변의 길이도 같다'는 것까지 확인해야 한다는 점을 기억하세요!
 
-**💡 피드백 작성 요령:**
-- 반말 대신 정중한 존댓말 사용
-- 이모지 적절히 활용 (😊 👍 🎯 등)
-- 학생이 다음에 무엇을 해볼지 호기심 유발
-- 개념의 '왜'를 일상적 비유로 설명
+**중요한 점:**
+- 수식이 필요한 경우만 간단하게 사용하세요
+- 친근하고 부드러운 톤을 유지하세요
+- 학생이 이해하기 쉽게 설명하세요
+- 구체적이고 실용적인 팁을 제공하세요
 
-
-**⚠️ 중요한 점:**
-- VISUAL_HINT는 자연스럽게 언급만 하고, [VISUAL_HINT: ...] 태그는 시각화 시스템이 자동으로 처리합니다
-- 학생의 수준과 문제의 복잡도에 맞춰 설명 깊이 조절
-- 항상 다음 탐구 방향이나 호기심을 자극하는 질문으로 마무리`;
+**✅ 수학 기호 사용법 (필요한 경우만):**
+- 모든 수학식은 $...$ 안에 작성하세요
+- 예: $f(x) = x^2 + 1$, $\\lim_{x \\to 0} f(x)$, $\\frac{a}{b}$`;
 
             try {
                 const response = await openai.chat_completions_create({
@@ -2072,267 +1460,16 @@ ${concept}
                             content: prompt
                         }
                     ],
-                    max_tokens: 1000,
+                    max_tokens: 800,
                     temperature: 0.7
                 });
 
-                let feedbackText = response.choices[0].message.content;
-                
-                // VISUAL_HINT 태그를 피드백 텍스트에서 제거
-                const cleanedFeedback = feedbackText.replace(/\[VISUAL_HINT:\s*[^\]]+\]/g, '');
-                
-                // 시각적 힌트 처리 (원본 텍스트 사용)
-                setTimeout(() => {
-                    addVisualHintsFromFeedback(feedbackText);
-                }, 1000);
-
-                return cleanedFeedback;
+                return response.choices[0].message.content;
                 
             } catch (error) {
                 console.error('GPT API Error:', error);
                 throw error;
             }
-        }
-        
-        // 피드백에서 시각적 힌트 추가 (개선된 버전)
-        function addVisualHintsFromFeedback(feedbackText) {
-            const chatMessages = document.getElementById('chatMessages');
-            
-            // [VISUAL_HINT: ...] 태그 감지 및 제거
-            const visualHintMatches = feedbackText.match(/\[VISUAL_HINT:\s*([^\]]+)\]/g);
-            if (visualHintMatches) {
-                visualHintMatches.forEach(match => {
-                    const hintType = match.match(/\[VISUAL_HINT:\s*([^\]]+)\]/)[1].toLowerCase();
-                    
-                    // 시각화 생성
-                    let visual = null;
-                    
-                    if (hintType.includes('직사각형') || hintType.includes('사각형')) {
-                        visual = createMathVisual('geometry', { 
-                            shape: 'rectangle',
-                            width: 6, 
-                            height: 4
-                        });
-                    } else if (hintType.includes('삼각형') || hintType.includes('피타고라스')) {
-                        visual = createMathVisual('geometry', { 
-                            shape: 'triangle',
-                            a: 6, b: 4, c: Math.sqrt(52)
-                        });
-                    } else if (hintType.includes('원')) {
-                        visual = createMathVisual('geometry', { 
-                            shape: 'circle',
-                            radius: 50
-                        });
-                    } else if (hintType.includes('그래프') || hintType.includes('함수')) {
-                        if (hintType.includes('일차') || hintType.includes('직선')) {
-                            visual = createMathVisual('graph', { 
-                                function: (x) => -2*x + 6,
-                                type: 'linear'
-                            });
-                        } else if (hintType.includes('이차') || hintType.includes('포물선')) {
-                            visual = createMathVisual('graph', { 
-                                function: (x) => -x*x + 4*x + 1,
-                                type: 'quadratic'
-                            });
-                        }
-                    } else if (hintType.includes('확률') || hintType.includes('트리')) {
-                        visual = createProbabilityTree();
-                    }
-                    
-                    if (visual) {
-                        chatMessages.appendChild(visual);
-                        
-                        // 설명 텍스트 추가
-                        const description = document.createElement('div');
-                        description.className = 'visual-description';
-                        description.textContent = `📊 ${hintType} 시각화`;
-                        chatMessages.appendChild(description);
-                    }
-                });
-                
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-            }
-        }
-        
-        // 확률 트리 다이어그램 생성
-        function createProbabilityTree() {
-            const visual = document.createElement('div');
-            visual.className = 'math-visual';
-            
-            const canvas = document.createElement('canvas');
-            canvas.className = 'math-canvas';
-            canvas.width = 400;
-            canvas.height = 250;
-            visual.appendChild(canvas);
-            
-            const ctx = canvas.getContext('2d');
-            
-            // 간단한 확률 트리 그리기
-            ctx.strokeStyle = '#4f46e5';
-            ctx.fillStyle = '#333';
-            ctx.lineWidth = 2;
-            ctx.font = '14px Arial';
-            
-            // 트리 구조 그리기
-            const centerX = 50;
-            const centerY = 125;
-            
-            // 첫 번째 분기
-            ctx.beginPath();
-            ctx.moveTo(centerX, centerY);
-            ctx.lineTo(centerX + 80, centerY - 50);
-            ctx.moveTo(centerX, centerY);
-            ctx.lineTo(centerX + 80, centerY + 50);
-            ctx.stroke();
-            
-            // 두 번째 분기들
-            ctx.beginPath();
-            ctx.moveTo(centerX + 80, centerY - 50);
-            ctx.lineTo(centerX + 160, centerY - 75);
-            ctx.moveTo(centerX + 80, centerY - 50);
-            ctx.lineTo(centerX + 160, centerY - 25);
-            
-            ctx.moveTo(centerX + 80, centerY + 50);
-            ctx.lineTo(centerX + 160, centerY + 25);
-            ctx.moveTo(centerX + 80, centerY + 50);
-            ctx.lineTo(centerX + 160, centerY + 75);
-            ctx.stroke();
-            
-            // 라벨 추가
-            ctx.fillText('시작', centerX - 20, centerY + 5);
-            ctx.fillText('복원', centerX + 60, centerY - 60);
-            ctx.fillText('비복원', centerX + 45, centerY + 65);
-            
-            return visual;
-        }
-
-        // 2022 개정 교육과정 기반 학년별 개념 매핑
-        const CURRICULUM_MAP = {
-            // 중학교 1학년
-            '중1': {
-                concepts: ['정수와 유리수', '문자와 식', '일차방정식', '좌표평면', '기본도형', '작도', '통계'],
-                keywords: ['정수', '유리수', '절댓값', '문자식', '일차방정식', '좌표', '점', '직선', '각', '삼각형 기초', '평균', '도수']
-            },
-            // 중학교 2학년  
-            '중2': {
-                concepts: ['유리수와 순환소수', '식의 계산', '일차부등식', '연립일차방정식', '일차함수', '삼각형의 성질', '사각형의 성질', '도형의 닮음'],
-                keywords: ['순환소수', '단항식', '다항식', '부등식', '연립방정식', '일차함수', '기울기', '이등변삼각형', '직각삼각형', '평행사변형', '닮음']
-            },
-            // 중학교 3학년
-            '중3': {
-                concepts: ['제곱근', '다항식의 곱셈', '인수분해', '이차방정식', '이차함수', '피타고라스 정리', '삼각비', '원의 성질', '확률'],
-                keywords: ['제곱근', '인수분해', '이차방정식', '이차함수', '포물선', '피타고라스', '삼각비', 'sin', 'cos', 'tan', '원', '확률']
-            },
-            // 고등학교 1학년 (수학)
-            '고1': {
-                concepts: ['다항식', '나머지정리', '인수분해', '복소수', '이차방정식과 이차함수', '여러 가지 방정식', '여러 가지 부등식', '평면좌표', '직선의 방정식', '원의 방정식', '도형의 이동'],
-                keywords: ['복소수', '허수', '이차함수 최값', '연립방정식', '부등식 영역', '직선의 방정식', '원의 방정식', '평행이동', '대칭이동']
-            },
-            // 고등학교 2학년 (수학I, 수학II)
-            '고2': {
-                concepts: ['지수함수', '로그함수', '삼각함수', '수열', '함수의 극한', '미분법', '적분법'],
-                keywords: ['지수', '로그', '삼각함수', '주기함수', '등차수열', '등비수열', '극한', '연속', '미분', '적분', '정적분']
-            },
-            // 고등학교 3학년 (미적분, 기하, 확률과 통계)
-            '고3': {
-                concepts: ['수열의 극한', '함수의 극한과 연속', '다항함수의 미분법', '삼각함수의 미분법', '여러 함수의 적분법', '벡터', '공간도형', '확률분포', '통계적 추정'],
-                keywords: ['무한급수', '삼각함수 미분', '역함수 미분', '치환적분', '부분적분', '벡터', '외적', '평면의 방정식', '정규분포', '표본평균']
-            }
-        };
-
-        // 개념 분석 및 학년 수준 판정
-        function analyzeConceptLevel(concept) {
-            const conceptLower = concept.toLowerCase();
-            
-            for (const [grade, data] of Object.entries(CURRICULUM_MAP)) {
-                for (const keyword of data.keywords) {
-                    if (conceptLower.includes(keyword.toLowerCase())) {
-                        return {
-                            grade: grade,
-                            level: grade,
-                            appropriateAge: getAgeRange(grade),
-                            concepts: data.concepts
-                        };
-                    }
-                }
-            }
-            
-            // 기본값: 중3 수준으로 설정
-            return {
-                grade: '중3',
-                level: '중3',
-                appropriateAge: '15-16세',
-                concepts: CURRICULUM_MAP['중3'].concepts
-            };
-        }
-
-        // 학년별 연령대 매핑
-        function getAgeRange(grade) {
-            const ageMap = {
-                '중1': '13-14세',
-                '중2': '14-15세', 
-                '중3': '15-16세',
-                '고1': '16-17세',
-                '고2': '17-18세',
-                '고3': '18-19세'
-            };
-            return ageMap[grade] || '15-16세';
-        }
-
-        // 개념 충돌 방지 및 난이도 조절
-        function validateConceptDifficulty(userConcept, questionConcept) {
-            const userLevel = analyzeConceptLevel(userConcept);
-            const questionLevel = analyzeConceptLevel(questionConcept);
-            
-            // 학년 수준 비교 (중1=1, 중2=2, 중3=3, 고1=4, 고2=5, 고3=6)
-            const levelMap = { '중1': 1, '중2': 2, '중3': 3, '고1': 4, '고2': 5, '고3': 6 };
-            const userGradeNum = levelMap[userLevel.grade] || 3;
-            const questionGradeNum = levelMap[questionLevel.grade] || 3;
-            
-            return {
-                isAppropriate: questionGradeNum <= userGradeNum + 1, // 1학년 위까지는 허용
-                userLevel: userLevel,
-                questionLevel: questionLevel,
-                recommendation: generateDifficultyRecommendation(userGradeNum, questionGradeNum)
-            };
-        }
-
-        // 난이도 조절 권장사항 생성
-        function generateDifficultyRecommendation(userGrade, questionGrade) {
-            if (questionGrade > userGrade + 1) {
-                return `문제가 너무 어려울 수 있습니다. ${CURRICULUM_MAP[Object.keys(CURRICULUM_MAP)[userGrade-1]]?.concepts.join(', ')} 수준의 문제로 조정하는 것이 좋겠습니다.`;
-            } else if (questionGrade < userGrade - 1) {
-                return `문제가 너무 쉬울 수 있습니다. 좀 더 도전적인 문제를 제시해보세요.`;
-            } else {
-                return `적절한 난이도입니다.`;
-            }
-        }
-
-        // 교육과정 기반 문제 필터링 및 개선 함수
-        function enhanceQuestionWithCurriculum(concept, questions) {
-            const conceptAnalysis = analyzeConceptLevel(concept);
-            
-            // 개념 박스 추가
-            const conceptBox = createMathVisual('concept', {
-                title: `📚 ${conceptAnalysis.grade} 수준 학습`,
-                content: `현재 학습 중인 개념들: ${conceptAnalysis.concepts.join(', ')}\n적정 연령대: ${conceptAnalysis.appropriateAge}`
-            });
-            
-            if (conceptBox) {
-                const chatMessages = document.getElementById('chatMessages');
-                chatMessages.appendChild(conceptBox);
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-            }
-            
-            return {
-                analysis: conceptAnalysis,
-                filteredQuestions: questions, // 일단 모든 질문 통과 (AI가 적절히 생성했다고 가정)
-                recommendations: [
-                    `${conceptAnalysis.grade} 수준에 맞는 개념 이해 중심 문제입니다.`,
-                    `실생활 연결과 시각적 이해를 중점으로 학습해보세요.`,
-                    `단계적 사고를 통해 깊이 있게 탐구해보세요.`
-                ]
-            };
         }
 
         // 파일을 Base64로 변환
@@ -2362,6 +1499,10 @@ ${concept}
                 apiModal.style.display = 'none';
                 addWelcomeMessages();
             }
+
+            // 초기 상태 설정
+            updateQuestionCounter();
+            updateNextQuestionButton();
 
             // 전송 버튼 클릭
             sendButton.addEventListener('click', function() {
@@ -2408,6 +1549,22 @@ ${concept}
             document.getElementById('apiKeyInput').addEventListener('keydown', function(e) {
                 if (e.key === 'Enter') {
                     setApiKey();
+                }
+            });
+
+            // 다음 질문 버튼 클릭 이벤트
+            nextQuestionBtn.addEventListener('click', function() {
+                console.log('Next question button clicked');
+                console.log('Button disabled:', nextQuestionBtn.disabled);
+                console.log('Current phase:', currentPhase);
+                console.log('Waiting for answer:', waitingForAnswer);
+                console.log('Current question index:', currentQuestionIndex);
+                console.log('Total questions:', questions.length);
+                
+                if (!nextQuestionBtn.disabled) {
+                    nextQuestion();
+                } else {
+                    console.log('Button is disabled, cannot proceed');
                 }
             });
         });
