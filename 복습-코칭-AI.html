@@ -683,6 +683,19 @@
             z-index: 10;
         }
 
+        /* 학생 출력 화면 구분선 */
+        .student-output-divider {
+            background: linear-gradient(90deg, #10b981, #059669);
+            color: white;
+            padding: 8px 16px;
+            margin: 16px 0;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
         /* API 키 설정 모달 */
         .modal-overlay {
             position: fixed;
@@ -1056,7 +1069,7 @@
             
             // 사진이 업로드되지 않은 경우 텍스트 입력 차단
             if (!hasImageUploaded) {
-                addMessage('먼저 사진을 업로드해주세요! 📷', false);
+                addMessage('먼저 사진을 업로드해주세요! 📷', false, false, true);
                 chatInput.value = '';
                 adjustTextareaHeight();
                 return;
@@ -1089,7 +1102,7 @@
                     // 퀴즈 진행 중에는 항상 답변 처리 (첫 번째 답변이든 추가 질문이든)
                     await handleAnswerInput(message);
                 } else {
-                    addMessage('사진을 먼저 업로드해주세요! 📷', false);
+                    addMessage('사진을 먼저 업로드해주세요! 📷', false, false, true);
                 }
             } catch (error) {
                 console.error('Message processing error:', error);
@@ -1120,7 +1133,7 @@
                     throw new Error('질문 생성에 실패했습니다.');
                 }
                 
-                addMessage('좋습니다! 사진을 분석하여 응용/변형 질문들을 만들었습니다. 차근차근 같이 풀어보시죠! 🎯');
+                addMessage('응용/변형 질문 생성 완료! 학생 화면에 출력합니다.', false, false, true);
                 
                 // 첫 번째 질문 시작
                 currentQuestionIndex = 0;
@@ -1148,18 +1161,46 @@
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
+        // 학생 출력 화면 구분선 추가
+        function addStudentOutputDivider() {
+            const dividerDiv = document.createElement('div');
+            dividerDiv.className = 'student-output-divider';
+            dividerDiv.textContent = '학생 출력 화면';
+            chatMessages.appendChild(dividerDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
         // 질문 표시
         function displayQuestion() {
             setTimeout(() => {
-                // 모든 질문에 구분선 추가
-                addQuestionDivider();
-                
-                addMessage(questions[currentQuestionIndex]);
-                waitingForAnswer = true;
-                // additionalQuestionCount는 누적되므로 리셋하지 않음
-                updateQuestionCounter();
-                updateNextQuestionButton();
-                updateFinishLearningButton();
+                // 첫 번째 질문인 경우에만 학생 출력 화면 구분선과 사진 추가
+                if (currentQuestionIndex === 0) {
+                    addStudentOutputDivider();
+                    
+                    // 업로드된 사진 다시 표시
+                    const imagePreviewMessages = document.querySelectorAll('.image-preview-message');
+                    if (imagePreviewMessages.length > 0) {
+                        const imagePreview = imagePreviewMessages[0].outerHTML;
+                        addMessage(imagePreview + '해당 문제에 대한 복습 질문이 제공됩니다.', false, false, false);
+                    }
+                    
+                    setTimeout(() => {
+                        addQuestionDivider();
+                        addMessage(questions[currentQuestionIndex]);
+                        waitingForAnswer = true;
+                        updateQuestionCounter();
+                        updateNextQuestionButton();
+                        updateFinishLearningButton();
+                    }, 1000);
+                } else {
+                    // 모든 질문에 구분선 추가
+                    addQuestionDivider();
+                    addMessage(questions[currentQuestionIndex]);
+                    waitingForAnswer = true;
+                    updateQuestionCounter();
+                    updateNextQuestionButton();
+                    updateFinishLearningButton();
+                }
             }, 500);
         }
 
@@ -1421,7 +1462,7 @@ AI:
                 if (!isMathProblem) {
                     // 수학 문제가 아닌 경우
                     addMessage('❌ 이 이미지는 수학 문제가 아니거나 제대로 인식되지 않았습니다. 📷');
-                    addMessage('수학 문제 사진을 다시 올려주세요! 🧮');
+                    addMessage('수학 문제 사진을 다시 올려주세요! 🧮', false, false, true);
                     
                     // 이미지 업로드 상태 초기화
                     hasImageUploaded = false;
@@ -1445,29 +1486,29 @@ AI:
                 const method = methodMatch ? methodMatch[1].trim() : '';
                 
                 // 분석 결과 표시
-                addMessage(`✅ ${concept} 문제를 분석했습니다.`);
+                addMessage(`✅ ${concept} 문제를 분석했습니다.`, false, false, true);
                 
                 if (condition) {
                     setTimeout(() => {
-                        addMessage(`📋 문제 조건: ${condition}`);
+                        addMessage(`📋 문제 조건: ${condition}`, false, false, true);
                     }, 1000);
                 }
                 
                 if (target) {
                     setTimeout(() => {
-                        addMessage(`🎯 구하는 것: ${target}`);
+                        addMessage(`🎯 구하는 것: ${target}`, false, false, true);
                     }, 2000);
                 }
                 
                 if (method) {
                     setTimeout(() => {
-                        addMessage(`💡 해결 방법: ${method}`);
+                        addMessage(`💡 해결 방법: ${method}`, false, false, true);
                     }, 3000);
                 }
                 
                 // 자동으로 응용 질문 생성 시작
                 setTimeout(() => {
-                    addMessage('이제 이 문제를 바탕으로 응용/변형 질문들을 만들어보겠습니다! 🎯');
+                    addMessage('응용/변형 질문 생성 중', false, false, true);
                     handleConceptInput(analysisResult);
                 }, 4500);
                 
@@ -1708,7 +1749,7 @@ ${ocrText}
                 const isMathProblem = isMathProblemMatch && isMathProblemMatch[1].trim() === '예';
                 
                 if (!isMathProblem) {
-                    addMessage('❌ 업로드된 사진이 수학 문제가 아니거나 제대로 인식되지 않았습니다. 수학 문제 사진을 다시 업로드해주세요! 📚');
+                    addMessage('❌ 업로드된 사진이 수학 문제가 아니거나 제대로 인식되지 않았습니다. 수학 문제 사진을 다시 업로드해주세요! 📚', false, false, true);
                     hasImageUploaded = false; // 사진 업로드 상태 리셋
                     return;
                 }
@@ -1727,35 +1768,35 @@ ${ocrText}
                 const diagram = diagramMatch ? diagramMatch[1].trim() : '';
                 
                 // 분석 결과 표시
-                addMessage(`✅ ${concept} 문제를 분석했습니다.`);
+                addMessage(`✅ ${concept} 문제를 분석했습니다.`, false, false, true);
                 
                 if (condition) {
                     setTimeout(() => {
-                        addMessage(`📋 문제 조건: ${condition}`);
+                        addMessage(`📋 문제 조건: ${condition}`, false, false, true);
                     }, 1000);
                 }
                 
                 if (target) {
                     setTimeout(() => {
-                        addMessage(`🎯 구하는 것: ${target}`);
+                        addMessage(`🎯 구하는 것: ${target}`, false, false, true);
                     }, 2000);
                 }
                 
                 if (diagram) {
                     setTimeout(() => {
-                        addMessage(`📐 도형/그래프 정보: ${diagram}`);
+                        addMessage(`📐 도형/그래프 정보: ${diagram}`, false, false, true);
                     }, 3000);
                 }
                 
                 if (method) {
                     setTimeout(() => {
-                        addMessage(`💡 해결 방법: ${method}`);
+                        addMessage(`💡 해결 방법: ${method}`, false, false, true);
                     }, 4000);
                 }
                 
                 // 자동으로 응용 질문 생성 시작
                 setTimeout(() => {
-                    addMessage('이제 이 문제를 바탕으로 응용/변형 질문들을 만들어보겠습니다! 🎯');
+                    addMessage('응용/변형 질문 생성 중', false, false, true);
                     handleConceptInput(analysisResult);
                 }, 5500);
                 
@@ -1796,7 +1837,7 @@ ${solutionText}
 **피드백 형식:**
 학생: [학생의 풀이 내용]
 
-AI: [피드백 내용 - 정답인 경우 "좋은 풀이에요!"로 시작, 오답인 경우 "좋은 시도지만, 제가 더 보충해드릴게요!"로 시작]
+[피드백 내용 - 정답인 경우 "좋은 풀이에요!"로 시작, 오답인 경우 "좋은 시도지만, 제가 더 보충해드릴게요!"로 시작]
 
 **피드백 원칙:**
 - 정답인 경우: 칭찬과 함께 핵심 개념과 논리 설명
