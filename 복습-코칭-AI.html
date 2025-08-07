@@ -630,9 +630,9 @@
     <div class="chat-header">
         <div class="chat-header-left">
             <div class="tutor-profile">
-                <img src="ai-tutor-profile.png" alt="AI 수학 튜터" onerror="this.style.display='none'; this.parentNode.innerHTML='🧠';">
+                <img src="ai-tutor-profile.png" alt="콴다 AI 복습 코치" onerror="this.style.display='none'; this.parentNode.innerHTML='🧠';">
             </div>
-            <h1>AI 수학 튜터</h1>
+            <h1>콴다 AI 복습 코치</h1>
         </div>
         <div class="chat-header-right">
             <div class="question-counter" id="questionCounter">추가 질문 제한 (0/5)</div>
@@ -764,7 +764,7 @@
                 messageDiv.innerHTML = `<div class="message-bubble">${content}</div>`;
             } else {
                 messageDiv.className = `message ${isUser ? 'user' : 'ai'}`;
-                const avatar = isUser ? '👤' : '<img src="ai-tutor-profile.png" alt="AI 수학 튜터" onerror="this.outerHTML=\'🧠\';">'; 
+                const avatar = isUser ? '👤' : '<img src="ai-tutor-profile.png" alt="콴다 AI 복습 코치" onerror="this.outerHTML=\'🧠\';">'; 
                 messageDiv.innerHTML = `
                     <div class="avatar">${avatar}</div>
                     <div class="message-bubble">${content}</div>
@@ -795,7 +795,7 @@
             const typingDiv = document.createElement('div');
             typingDiv.className = 'message ai typing-indicator';
             typingDiv.innerHTML = `
-                <div class="avatar"><img src="ai-tutor-profile.png" alt="AI 수학 튜터" onerror="this.outerHTML='🧠';"></div>
+                <div class="avatar"><img src="ai-tutor-profile.png" alt="콴다 AI 복습 코치" onerror="this.outerHTML='🧠';"></div>
                 <div class="message-bubble">
                     <div class="typing-dots">
                         <span></span>
@@ -874,7 +874,7 @@
         // 환영 메시지 추가
         function addWelcomeMessages() {
             setTimeout(() => {
-                addMessage('안녕하세요! 👋 AI 수학 튜터입니다.');
+                addMessage('안녕하세요! 👋 콴다 AI 복습 코치입니다.');
             }, 500);
             
             setTimeout(() => {
@@ -1164,26 +1164,30 @@ AI:
                 return;
             }
 
-            // 이미 사진이 업로드된 경우 처리하지 않음
-            if (hasImageUploaded) {
-                addMessage('이미 사진이 업로드되어 있습니다. 현재 문제를 계속 진행해주세요! 📝', false);
-                return;
-            }
-
             // 이미지 미리보기 추가
             const reader = new FileReader();
             reader.onload = function(e) {
-                const imagePreview = `<div class="image-preview-message"><img src="${e.target.result}" alt="업로드된 이미지"></div>사진을 올려주셨네요! AI가 이미지를 분석해보겠습니다...`;
-                addMessage(imagePreview, true);
+                const imagePreview = `<div class="image-preview-message"><img src="${e.target.result}" alt="업로드된 이미지"></div>`;
                 
-                hasImageUploaded = true; // 사진 업로드 완료 표시
-                
-                // API 키가 있으면 Vision API로 분석
-                if (apiKey) {
-                    analyzeImageConcept(file);
+                // 최초 업로드인지 확인
+                if (!hasImageUploaded) {
+                    // 최초 업로드: 수학 문제 분석
+                    addMessage(imagePreview + '사진을 올려주셨네요! AI가 이미지를 분석해보겠습니다...', true);
+                    hasImageUploaded = true; // 사진 업로드 완료 표시
+                    
+                    // API 키가 있으면 Vision API로 분석
+                    if (apiKey) {
+                        analyzeImageConcept(file);
+                    } else {
+                        addMessage('AI 이미지 분석을 위해 먼저 API 키를 설정해주세요! 🔑');
+                        performOCR(file);
+                    }
                 } else {
-                    addMessage('AI 이미지 분석을 위해 먼저 API 키를 설정해주세요! 🔑');
-                    performOCR(file);
+                    // 이후 업로드: 학생 풀이 분석
+                    addMessage(imagePreview + '풀이 사진을 올려주셨네요! AI가 풀이를 분석해보겠습니다...', true);
+                    
+                    // 학생 풀이 분석
+                    analyzeStudentSolution(file);
                 }
             };
             reader.readAsDataURL(file);
@@ -1402,6 +1406,81 @@ AI:
             isOCRProcessing = false;
         }
 
+        // 학생 풀이 분석 (OCR + GPT 분석)
+        async function analyzeStudentSolution(file) {
+            if (isOCRProcessing) return;
+            
+            isOCRProcessing = true;
+            const typing = addTypingIndicator();
+            
+            try {
+                removeTypingIndicator();
+                addMessage('풀이를 읽고 있습니다... 📖');
+                const newTyping = addTypingIndicator();
+                
+                const { data: { text } } = await Tesseract.recognize(
+                    file,
+                    'kor+eng',
+                    {
+                        tessedit_pageseg_mode: Tesseract.PSM.AUTO_OSD,
+                        tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz가-힣+-*/=()[]{}^√∞∑∫≤≥≠→←↑↓°′″αβγδεζηθικλμνξοπρστυφχψω∀∃∈∉⊂⊃∪∩∅ℝℂℕℤℚ∴∵∝∼≅≡∝∠⊥∥⟂△▲▼▶◀●○■□★☆',
+                        preserve_interword_spaces: '1'
+                    }
+                );
+                
+                // 수학 기호 후처리
+                let cleanedText = text
+                    .replace(/"/g, '²')
+                    .replace(/'/g, '′')
+                    .replace(/—/g, '-')
+                    .replace(/–/g, '-')
+                    .replace(/\|/g, '1')
+                    .replace(/O/g, '0')
+                    .replace(/l/g, '1')
+                    .replace(/\s*x\s*/g, '×')
+                    .replace(/\s*\*\s*/g, '×')
+                    .replace(/\/\s*/g, '÷')
+                    .replace(/<=|≤/g, '≤')
+                    .replace(/>=|≥/g, '≥')
+                    .replace(/!=/g, '≠')
+                    .replace(/\s+/g, ' ')
+                    .split('\n')
+                    .map(line => line.trim())
+                    .filter(line => line.length > 0)
+                    .join('\n');
+                
+                removeTypingIndicator();
+                
+                if (cleanedText.trim()) {
+                    addMessage(`📝 풀이 인식 완료!\n\n${cleanedText}`);
+                    
+                    // OCR 결과를 GPT로 분석하여 풀이 피드백 생성
+                    setTimeout(() => {
+                        analyzeStudentSolutionResult(cleanedText);
+                    }, 1000);
+                } else {
+                    addMessage('❌ 풀이를 인식할 수 없습니다. 📷');
+                    addMessage('더 선명한 풀이 사진을 다시 올려주세요! ✍️');
+                    
+                    // 이미지 미리보기 제거
+                    const imagePreviewMessages = document.querySelectorAll('.image-preview-message');
+                    imagePreviewMessages.forEach(msg => msg.remove());
+                }
+                
+            } catch (error) {
+                removeTypingIndicator();
+                console.error('Student Solution OCR Error:', error);
+                addMessage('❌ 풀이를 인식할 수 없습니다. 📷');
+                addMessage('더 선명한 풀이 사진을 다시 올려주세요! ✍️');
+                
+                // 이미지 미리보기 제거
+                const imagePreviewMessages = document.querySelectorAll('.image-preview-message');
+                imagePreviewMessages.forEach(msg => msg.remove());
+            }
+            
+            isOCRProcessing = false;
+        }
+
         // OCR 결과를 GPT로 분석하여 문제의 의도와 개념 파싱
         async function analyzeOCRResult(ocrText) {
             const typing = addTypingIndicator();
@@ -1521,6 +1600,59 @@ ${ocrText}
                 setTimeout(() => {
                     handleConceptInput(ocrText);
                 }, 1000);
+            }
+        }
+
+        // 학생 풀이 결과 분석 및 피드백 생성
+        async function analyzeStudentSolutionResult(solutionText) {
+            const typing = addTypingIndicator();
+            
+            try {
+                const response = await openai.chat_completions_create({
+                    model: 'gpt-3.5-turbo',
+                    messages: [
+                        {
+                            role: 'user',
+                            content: `학생의 수학 문제 풀이를 분석하고 피드백을 제공해주세요.
+
+**학생 풀이:**
+${solutionText}
+
+**분석 요청사항:**
+1. 풀이의 정확성 판단 (정답/부분 정답/오답)
+2. 풀이 과정의 논리적 타당성
+3. 사용된 수학 개념의 정확성
+4. 계산 과정의 정확성
+5. 개선이 필요한 부분
+
+**피드백 형식:**
+학생: [학생의 풀이 내용]
+
+AI: [피드백 내용 - 정답인 경우 "좋은 풀이에요!"로 시작, 오답인 경우 "좋은 시도지만, 제가 더 보충해드릴게요!"로 시작]
+
+**피드백 원칙:**
+- 정답인 경우: 칭찬과 함께 핵심 개념과 논리 설명
+- 오답인 경우: 어떤 개념이 혼동되었는지, 어떤 조건이 빠졌는지 명확히 설명
+- 친근하고 정확한 톤 사용
+- 수학적으로 정확한 표현 사용
+
+위 형식으로 분석하고 피드백을 제공해주세요.`
+                        }
+                    ],
+                    max_tokens: 800
+                });
+
+                const feedbackResult = response.choices[0].message.content.trim();
+                
+                removeTypingIndicator();
+                
+                // 피드백 결과 표시
+                addMessage(feedbackResult);
+                
+            } catch (error) {
+                removeTypingIndicator();
+                console.error('Student Solution Analysis Error:', error);
+                addMessage('풀이 분석 중 오류가 발생했습니다. 다시 시도해주세요. 😅');
             }
         }
 
