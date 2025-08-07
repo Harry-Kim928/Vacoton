@@ -804,7 +804,7 @@
     <div class="chat-header">
         <div class="chat-header-left">
             <div class="tutor-profile">
-                <img src="ai-tutor-profile.png" alt="콴다 AI 복습 코치" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
+                <img src="ai-tutor-profile.png" alt="콴다 AI 복습 코치" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;" onerror="this.style.display='none'; this.parentNode.innerHTML='<div style=\'width: 32px; height: 32px; border-radius: 50%; background: #4f46e5; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; font-weight: bold;\'>AI</div>';">
             </div>
             <h1>콴다 AI 복습 코치</h1>
         </div>
@@ -938,7 +938,7 @@
                 messageDiv.innerHTML = `<div class="message-bubble">${content}</div>`;
             } else {
                 messageDiv.className = `message ${isUser ? 'user' : 'ai'}`;
-                const avatar = isUser ? '👤' : '<img src="ai-tutor-profile.png" alt="콴다 AI 복습 코치" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; flex-shrink: 0;">'; 
+                const avatar = isUser ? '👤' : '<img src="ai-tutor-profile.png" alt="콴다 AI 복습 코치" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; flex-shrink: 0;" onerror="this.outerHTML=\'<div style=\\\'width: 100%; height: 100%; border-radius: 50%; background: #4f46e5; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: bold;\\\'>AI</div>\';">'; 
                 const timeText = getCurrentTime();
                 messageDiv.innerHTML = `
                     <div class="avatar" style="width: 32px; height: 32px; background: ${isUser ? '#60a5fa' : '#4f46e5'}; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 600; margin-right: 8px; align-self: flex-start; overflow: hidden; flex-shrink: 0; min-width: 32px; min-height: 32px; max-width: 32px; max-height: 32px;">${avatar}</div>
@@ -990,7 +990,7 @@
             const typingDiv = document.createElement('div');
             typingDiv.className = 'message ai typing-indicator';
             typingDiv.innerHTML = `
-                <div class="avatar" style="width: 32px; height: 32px; background: #4f46e5; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 600; margin-right: 8px; align-self: flex-start; overflow: hidden; flex-shrink: 0; min-width: 32px; min-height: 32px; max-width: 32px; max-height: 32px;"><img src="ai-tutor-profile.png" alt="콴다 AI 복습 코치" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; flex-shrink: 0;"></div>
+                <div class="avatar" style="width: 32px; height: 32px; background: #4f46e5; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 600; margin-right: 8px; align-self: flex-start; overflow: hidden; flex-shrink: 0; min-width: 32px; min-height: 32px; max-width: 32px; max-height: 32px;"><img src="ai-tutor-profile.png" alt="콴다 AI 복습 코치" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; flex-shrink: 0;" onerror="this.outerHTML='<div style=\'width: 100%; height: 100%; border-radius: 50%; background: #4f46e5; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: bold;\'>AI</div>';"></div>
                 <div class="message-bubble" style="background: #e5e7eb; color: #374151; border-radius: 18px; border-bottom-left-radius: 8px; padding: 12px 16px; position: relative; word-wrap: break-word; line-height: 1.4; max-width: 90%; align-self: flex-start; margin-left: 0; margin-right: auto;">
                     <div class="typing-dots">
                         <span></span>
