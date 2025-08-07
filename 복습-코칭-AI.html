@@ -653,7 +653,7 @@
                 <textarea 
                     id="chatInput" 
                     class="chat-input" 
-                    placeholder="메시지를 입력하세요..."
+                    placeholder="답변을 입력하세요..."
                     rows="1"
                 ></textarea>
                 <div class="input-actions">
@@ -732,6 +732,7 @@
         let isComposing = false; // 한글 입력기(IME) 조합 중 여부
         let additionalQuestionCount = 0; // 추가 질문 카운트
         let maxAdditionalQuestions = 5; // 최대 추가 질문 수
+        let hasImageUploaded = false; // 사진 업로드 여부
 
         // DOM 요소들
         const chatMessages = document.getElementById('chatMessages');
@@ -832,11 +833,8 @@
 
         // 학습 마치기 버튼 상태 업데이트
         function updateFinishLearningButton() {
-            // 모든 질문이 완료되었고, 퀴즈 단계일 때만 활성화
-            if (currentPhase === 'quiz' && 
-                questions.length > 0 && 
-                currentQuestionIndex >= questions.length - 1 && 
-                !waitingForAnswer) {
+            // 완료 단계일 때만 활성화
+            if (currentPhase === 'complete') {
                 finishLearningBtn.disabled = false;
             } else {
                 finishLearningBtn.disabled = true;
@@ -880,10 +878,10 @@
             }, 500);
             
             setTimeout(() => {
-                addMessage('교과서나 노트 사진을 올려주시거나, 학습한 내용을 직접 입력해주세요. 그러면 제가 문제를 분석하고 응용/변형 질문들을 만들어드리겠습니다! 📚✨');
+                addMessage('교과서나 노트 사진을 올려주세요. 사진을 분석하여 응용/변형 질문들을 만들어드리겠습니다! 📚✨');
             }, 1500);
             
-            currentPhase = 'concept';
+            currentPhase = 'setup';
         }
 
         // 메시지 전송
@@ -893,6 +891,14 @@
             
             const message = chatInput.value.trim();
             if (!message || isOCRProcessing) return;
+            
+            // 사진이 업로드되지 않은 경우 텍스트 입력 차단
+            if (!hasImageUploaded) {
+                addMessage('먼저 사진을 업로드해주세요! 📷', false);
+                chatInput.value = '';
+                adjustTextareaHeight();
+                return;
+            }
             
             // 불완전한 한글 자모음만 필터링 (완성된 글자나 숫자, 영문은 허용)
             if (message.length === 1 && /^[ㄱ-ㅎㅏ-ㅣ]$/.test(message)) {
@@ -916,12 +922,12 @@
                 chatInput.value = '';
                 adjustTextareaHeight();
                 
-                // 현재 단계에 따른 처리
-                if (currentPhase === 'concept') {
-                    await handleConceptInput(message);
-                } else if (currentPhase === 'quiz') {
+                // 현재 단계에 따른 처리 (퀴즈 단계만 허용)
+                if (currentPhase === 'quiz') {
                     // 퀴즈 진행 중에는 항상 답변 처리 (첫 번째 답변이든 추가 질문이든)
                     await handleAnswerInput(message);
+                } else {
+                    addMessage('사진을 먼저 업로드해주세요! 📷', false);
                 }
             } catch (error) {
                 console.error('Message processing error:', error);
@@ -935,7 +941,7 @@
             }
         }
 
-        // 개념 입력 처리
+        // 개념 입력 처리 (사진 분석 결과를 퀴즈로 진행)
         async function handleConceptInput(concept) {
             userConcept = concept;
             currentPhase = 'quiz';
@@ -952,7 +958,7 @@
                     throw new Error('질문 생성에 실패했습니다.');
                 }
                 
-                addMessage('좋습니다! 입력해주신 내용을 바탕으로 응용/변형 질문들을 만들었습니다. 차근차근 같이 풀어보시죠! 🎯');
+                addMessage('좋습니다! 사진을 분석하여 응용/변형 질문들을 만들었습니다. 차근차근 같이 풀어보시죠! 🎯');
                 
                 // 첫 번째 질문 시작
                 currentQuestionIndex = 0;
@@ -1026,12 +1032,31 @@
                     const feedback = await generateFeedback(questions[currentQuestionIndex], answer);
                     removeTypingIndicator();
                     
-                    let nextInstruction = "\n\n더 궁금한 점이 있으시면 언제든 물어보세요.";
-                    
-                    addMessage(feedback + nextInstruction);
-                    waitingForAnswer = false; // 이제 추가 질문도 받을 수 있음
-                    updateNextQuestionButton();
-                    updateFinishLearningButton();
+                    // 마지막 질문인 경우 채팅 종료
+                    if (currentQuestionIndex === questions.length - 1) {
+                        addMessage(feedback);
+                        setTimeout(() => {
+                            addMessage('채팅이 종료되었습니다.', false, true); // 시스템 메시지로 표시
+                        }, 1000);
+                        
+                        // 채팅 입력 비활성화
+                        chatInput.disabled = true;
+                        sendButton.disabled = true;
+                        imageButton.disabled = true;
+                        nextQuestionBtn.disabled = true;
+                        
+                        // 학습 마치기 버튼 활성화
+                        finishLearningBtn.disabled = false;
+                        
+                        currentPhase = 'complete';
+                    } else {
+                        // 마지막 질문이 아닌 경우 계속 진행
+                        let nextInstruction = "\n\n더 궁금한 점이 있으시면 언제든 물어보세요.";
+                        addMessage(feedback + nextInstruction);
+                        waitingForAnswer = false; // 이제 추가 질문도 받을 수 있음
+                        updateNextQuestionButton();
+                        updateFinishLearningButton();
+                    }
                 } else {
                     // 추가 질문 제한 확인
                     if (additionalQuestionCount >= maxAdditionalQuestions) {
@@ -1109,20 +1134,22 @@ AI:
             }
         }
 
-        // 퀴즈 완료
+        // 퀴즈 완료 (다음 질문 버튼으로 마지막 질문 완료 시)
         function finishQuiz() {
             currentPhase = 'complete';
             
             setTimeout(() => {
-                addMessage('🏆 모든 질문을 완료하셨습니다! 정말 훌륭하셨습니다!');
+                addMessage('채팅이 종료되었습니다.', false, true); // 시스템 메시지로 표시
             }, 500);
             
             // 채팅 입력 비활성화
             chatInput.disabled = true;
             sendButton.disabled = true;
             imageButton.disabled = true;
-            finishLearningBtn.disabled = true;
             nextQuestionBtn.disabled = true;
+            
+            // 학습 마치기 버튼 활성화
+            finishLearningBtn.disabled = false;
         }
 
         // 이미지 업로드 처리
@@ -1137,11 +1164,19 @@ AI:
                 return;
             }
 
+            // 이미 사진이 업로드된 경우 처리하지 않음
+            if (hasImageUploaded) {
+                addMessage('이미 사진이 업로드되어 있습니다. 현재 문제를 계속 진행해주세요! 📝', false);
+                return;
+            }
+
             // 이미지 미리보기 추가
             const reader = new FileReader();
             reader.onload = function(e) {
                 const imagePreview = `<div class="image-preview-message"><img src="${e.target.result}" alt="업로드된 이미지"></div>사진을 올려주셨네요! AI가 이미지를 분석해보겠습니다...`;
                 addMessage(imagePreview, true);
+                
+                hasImageUploaded = true; // 사진 업로드 완료 표시
                 
                 // API 키가 있으면 Vision API로 분석
                 if (apiKey) {
@@ -1172,27 +1207,30 @@ AI:
                             content: [
                                 {
                                     type: 'text',
-                                    text: `이 수학 문제를 분석해주세요:
+                                    text: `이 이미지가 수학 문제인지 판단하고, 수학 문제라면 분석해주세요:
 
-**문제 분석 요청:**
-1. 문제에서 주어진 모든 조건과 수치를 정확히 파악
-2. 구하고자 하는 답의 형태와 단위 확인
-3. 문제 해결에 필요한 핵심 수학 개념과 공식 식별
-4. 문제의 구조와 논리적 흐름 분석
+**1단계: 수학 문제 판단**
+먼저 이 이미지가 수학 문제인지 판단해주세요.
+- 수학 문제: 숫자, 수식, 도형, 수학적 개념이 포함된 문제
+- 수학 문제가 아님: 일상적인 이미지, 다른 과목 문제, 의미 없는 이미지 등
 
-**출력 형식:**
+**2단계: 수학 문제인 경우 분석**
+수학 문제로 판단되면 다음 형식으로 분석해주세요:
+
 문제 조건: [주어진 모든 조건과 수치]
 구하는 것: [구하고자 하는 답]
 핵심 개념: [사용되는 주요 수학 개념]
 해결 방법: [문제 해결의 핵심 접근법]
 
-예시:
-문제 조건: AB=AC, CB=CD인 이등변삼각형 △ABC와 △CDB, ∠ACD=∠DCE=58°
-구하는 것: ∠ABD의 크기
-핵심 개념: 이등변삼각형의 성질, 각의 관계, 삼각형의 내각의 합
-해결 방법: 이등변삼각형의 성질을 이용하여 각의 관계를 찾고, 삼각형의 내각의 합을 활용하여 계산
+**출력 형식:**
+수학 문제 여부: [예/아니오]
+[수학 문제인 경우에만 아래 내용 포함]
+문제 조건: [내용]
+구하는 것: [내용]
+핵심 개념: [내용]
+해결 방법: [내용]
 
-위 형식으로 분석해주세요.`
+위 형식으로 판단하고 분석해주세요.`
                                 },
                                 {
                                     type: 'image_url',
@@ -1209,6 +1247,25 @@ AI:
                 const analysisResult = response.choices[0].message.content.trim();
                 
                 removeTypingIndicator();
+                
+                // 수학 문제 여부 판단
+                const isMathProblemMatch = analysisResult.match(/수학 문제 여부:\s*(예|아니오)/);
+                const isMathProblem = isMathProblemMatch && isMathProblemMatch[1] === '예';
+                
+                if (!isMathProblem) {
+                    // 수학 문제가 아닌 경우
+                    addMessage('❌ 이 이미지는 수학 문제가 아니거나 제대로 인식되지 않았습니다. 📷');
+                    addMessage('수학 문제 사진을 다시 올려주세요! 🧮');
+                    
+                    // 이미지 업로드 상태 초기화
+                    hasImageUploaded = false;
+                    
+                    // 이미지 미리보기 제거
+                    const imagePreviewMessages = document.querySelectorAll('.image-preview-message');
+                    imagePreviewMessages.forEach(msg => msg.remove());
+                    
+                    return;
+                }
                 
                 // 분석 결과를 파싱하여 핵심 정보 추출
                 const conditionMatch = analysisResult.match(/문제 조건:\s*(.+)/);
@@ -1251,7 +1308,7 @@ AI:
             } catch (error) {
                 removeTypingIndicator();
                 console.error('Vision Analysis Error:', error);
-                addMessage('AI 분석이 잘 안 되네요. 다른 방법으로 시도해보겠습니다! 🔄');
+                addMessage('❌ AI 분석이 실패했습니다. 다른 방법으로 시도해보겠습니다! 🔄');
                 
                 // 실패 시 OCR로 대체
                 setTimeout(() => {
@@ -1315,13 +1372,31 @@ AI:
                         analyzeOCRResult(cleanedText);
                     }, 1000);
                 } else {
+                    addMessage('❌ 이미지에서 수학 문제를 인식할 수 없습니다. 📷');
+                    addMessage('더 선명한 수학 문제 사진을 다시 올려주세요! 🧮');
+                    
+                    // 이미지 업로드 상태 초기화
+                    hasImageUploaded = false;
+                    
+                    // 이미지 미리보기 제거
+                    const imagePreviewMessages = document.querySelectorAll('.image-preview-message');
+                    imagePreviewMessages.forEach(msg => msg.remove());
+                    
                     throw new Error('텍스트를 인식할 수 없습니다.');
                 }
                 
             } catch (error) {
                 removeTypingIndicator();
                 console.error('OCR Error:', error);
-                addMessage('이미지에서 글자를 읽기 어렵습니다. 더 선명한 사진을 사용하거나 직접 입력해주세요. 😅');
+                addMessage('❌ 이미지에서 수학 문제를 인식할 수 없습니다. 📷');
+                addMessage('더 선명한 수학 문제 사진을 다시 올려주세요! 🧮');
+                
+                // 이미지 업로드 상태 초기화
+                hasImageUploaded = false;
+                
+                // 이미지 미리보기 제거
+                const imagePreviewMessages = document.querySelectorAll('.image-preview-message');
+                imagePreviewMessages.forEach(msg => msg.remove());
             }
             
             isOCRProcessing = false;
@@ -1337,24 +1412,33 @@ AI:
                     messages: [
                         {
                             role: 'user',
-                            content: `다음 수학 문제를 분석해주세요:
+                            content: `다음 텍스트가 수학 문제인지 판단하고, 수학 문제라면 분석해주세요:
 
 **OCR로 인식된 텍스트:**
 ${ocrText}
 
-**분석 요청:**
-1. 문제에서 주어진 모든 조건과 수치를 정확히 파악 (도형, 각도, 길이, 수치 등)
-2. 구하고자 하는 답의 형태와 단위 확인
-3. 문제 해결에 필요한 핵심 수학 개념과 공식 식별
-4. 문제의 구조와 논리적 흐름 분석
-5. 문제에서 사용된 도형, 그래프, 좌표계 등의 구체적 정보 파악
+**1단계: 수학 문제 판단**
+먼저 이 텍스트가 수학 문제인지 판단해주세요.
+- 수학 문제: 숫자, 수식, 도형, 수학적 개념이 포함된 문제
+- 수학 문제가 아님: 일상적인 텍스트, 다른 과목 문제, 의미 없는 텍스트 등
 
-**출력 형식:**
+**2단계: 수학 문제인 경우 분석**
+수학 문제로 판단되면 다음 형식으로 분석해주세요:
+
 문제 조건: [주어진 모든 조건과 수치 - 구체적인 도형, 각도, 길이 포함]
 구하는 것: [구하고자 하는 답 - 정확한 형태와 단위]
 핵심 개념: [사용되는 주요 수학 개념 - 구체적인 개념명]
 해결 방법: [문제 해결의 핵심 접근법 - 단계별 논리적 과정]
 도형/그래프 정보: [문제에서 사용된 도형, 그래프, 좌표계 등의 구체적 정보]
+
+**출력 형식:**
+수학 문제 여부: [예/아니오]
+[수학 문제인 경우에만 아래 내용 포함]
+문제 조건: [내용]
+구하는 것: [내용]
+핵심 개념: [내용]
+해결 방법: [내용]
+도형/그래프 정보: [내용]
 
 **분석 기준:**
 - 원문 문제의 문맥(도형, 수치, 조건)을 벗어나지 않는 분석
@@ -1362,7 +1446,7 @@ ${ocrText}
 - 수학적으로 정확한 표현과 개념 사용
 - 학생이 논리적으로 답을 유도할 수 있는 구조 파악
 
-위 형식으로 분석해주세요.`
+위 형식으로 판단하고 분석해주세요.`
                         }
                     ],
                     max_tokens: 800
@@ -1371,6 +1455,16 @@ ${ocrText}
                 const analysisResult = response.choices[0].message.content.trim();
                 
                 removeTypingIndicator();
+                
+                // 수학 문제 여부 확인
+                const isMathProblemMatch = analysisResult.match(/수학 문제 여부:\s*(.+)/);
+                const isMathProblem = isMathProblemMatch && isMathProblemMatch[1].trim() === '예';
+                
+                if (!isMathProblem) {
+                    addMessage('❌ 업로드된 사진이 수학 문제가 아니거나 제대로 인식되지 않았습니다. 수학 문제 사진을 다시 업로드해주세요! 📚');
+                    hasImageUploaded = false; // 사진 업로드 상태 리셋
+                    return;
+                }
                 
                 // 분석 결과를 파싱하여 핵심 정보 추출
                 const conditionMatch = analysisResult.match(/문제 조건:\s*(.+)/);
