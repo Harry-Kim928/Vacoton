@@ -1460,7 +1460,7 @@ AI:
                     }, 1000);
                 } else {
                     addMessage('❌ 풀이를 인식할 수 없습니다. 📷');
-                    addMessage('더 선명한 풀이 사진을 다시 올려주세요! ✍️');
+                    addMessage('풀이 사진을 잘 인식하기 어려운 경우에는 인식이 어려워요. 문자 텍스트로 설명해주세요.');
                     
                     // 이미지 미리보기 제거
                     const imagePreviewMessages = document.querySelectorAll('.image-preview-message');
@@ -1471,7 +1471,7 @@ AI:
                 removeTypingIndicator();
                 console.error('Student Solution OCR Error:', error);
                 addMessage('❌ 풀이를 인식할 수 없습니다. 📷');
-                addMessage('더 선명한 풀이 사진을 다시 올려주세요! ✍️');
+                addMessage('풀이 사진을 잘 인식하기 어려운 경우에는 인식이 어려워요. 문자 텍스트로 설명해주세요.');
                 
                 // 이미지 미리보기 제거
                 const imagePreviewMessages = document.querySelectorAll('.image-preview-message');
