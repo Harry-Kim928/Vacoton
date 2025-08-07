@@ -1,4 +1,19 @@
 {
-  "buildCommand": "echo 'No build needed for static site'",
-  "outputDirectory": "."
+  "version": 2,
+  "builds": [
+    {
+      "src": "복습-코칭-AI.html",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/",
+      "dest": "/복습-코칭-AI.html"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/복습-코칭-AI.html"
+    }
+  ]
 }
