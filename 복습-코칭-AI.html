@@ -907,8 +907,8 @@
         }
 
         // 전역 변수
-        let apiKey = process.env.OPENAI_API_KEY || 'YOUR_API_KEY_HERE'; // 환경변수에서 API 키 가져오기
-        let openai = new OpenAIClient(process.env.OPENAI_API_KEY || 'YOUR_API_KEY_HERE'); // 환경변수에서 API 키 가져오기
+        let apiKey = 'YOUR_API_KEY_HERE'; // API 키를 여기에 입력하세요
+        let openai = new OpenAIClient('YOUR_API_KEY_HERE'); // API 키를 여기에 입력하세요
         let questions = [];
         let currentQuestionIndex = 0;
         let userConcept = '';
