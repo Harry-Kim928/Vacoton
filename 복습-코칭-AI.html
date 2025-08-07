@@ -134,66 +134,72 @@
             scroll-behavior: smooth;
         }
 
-        /* 말풍선 공통 스타일 */
+        /* 말풍선 공통 스타일 - 완전 새로 작성 */
         .message {
-            display: flex;
-            margin-bottom: 20px;
+            display: flex !important;
+            margin-bottom: 20px !important;
             animation: fadeInUp 0.3s ease-out;
-            max-width: 100%;
-            padding: 0 16px;
+            max-width: 100% !important;
+            padding: 0 16px !important;
+            width: 100% !important;
         }
 
         .message.ai {
             justify-content: flex-start !important;
-            align-items: flex-start;
+            align-items: flex-start !important;
+            flex-direction: row !important;
         }
 
         .message.user {
-            justify-content: flex-end;
-            align-items: flex-start;
+            justify-content: flex-end !important;
+            align-items: flex-start !important;
+            flex-direction: row-reverse !important;
         }
 
         .message-bubble {
-            max-width: 90%;
-            padding: 12px 16px 32px 16px;
-            border-radius: 18px;
-            position: relative;
-            word-wrap: break-word;
-            line-height: 1.4;
-            word-break: break-word;
-            overflow-wrap: break-word;
+            max-width: 70% !important;
+            padding: 12px 16px 32px 16px !important;
+            border-radius: 18px !important;
+            position: relative !important;
+            word-wrap: break-word !important;
+            line-height: 1.4 !important;
+            word-break: break-word !important;
+            overflow-wrap: break-word !important;
+            flex-shrink: 1 !important;
         }
 
         /* AI 튜터 말풍선 (왼쪽, 회색) */
         .message.ai .message-bubble {
-            background: #e5e7eb;
-            color: #374151;
-            border-bottom-left-radius: 8px;
+            background: #e5e7eb !important;
+            color: #374151 !important;
+            border-bottom-left-radius: 8px !important;
             margin-left: 0 !important;
-            position: relative;
+            position: relative !important;
             align-self: flex-start !important;
             margin-right: auto !important;
+            flex-shrink: 1 !important;
         }
 
         .message.ai .avatar {
             width: 32px !important;
             height: 32px !important;
-            background: #4f46e5;
+            background: #4f46e5 !important;
             border-radius: 50% !important;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 14px;
-            font-weight: 600;
-            margin-right: 8px;
-            align-self: flex-start;
-            overflow: hidden;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            color: white !important;
+            font-size: 14px !important;
+            font-weight: 600 !important;
+            margin-right: 8px !important;
+            align-self: flex-start !important;
+            overflow: hidden !important;
             flex-shrink: 0 !important;
             min-width: 32px !important;
             min-height: 32px !important;
             max-width: 32px !important;
             max-height: 32px !important;
+            box-sizing: border-box !important;
         }
         
         .message.ai .avatar img {
@@ -204,15 +210,18 @@
             flex-shrink: 0 !important;
             max-width: 100% !important;
             max-height: 100% !important;
+            box-sizing: border-box !important;
+            display: block !important;
         }
 
         /* 학생 말풍선 (오른쪽, 파란색) */
         .message.user .message-bubble {
-            background: #3b82f6;
-            color: white;
-            border-bottom-right-radius: 8px;
-            margin-right: 0;
-            align-self: flex-end;
+            background: #3b82f6 !important;
+            color: white !important;
+            border-bottom-right-radius: 8px !important;
+            margin-right: 0 !important;
+            align-self: flex-end !important;
+            flex-shrink: 1 !important;
         }
 
         .message.user .avatar {
@@ -233,21 +242,22 @@
             min-height: 32px;
         }
 
-        /* 시간 표시 */
+        /* 시간 표시 - 강제 적용 */
         .message-time {
-            position: absolute;
-            bottom: 4px;
-            right: 8px;
-            font-size: 10px;
-            text-align: right;
+            position: absolute !important;
+            bottom: 4px !important;
+            right: 8px !important;
+            font-size: 10px !important;
+            text-align: right !important;
+            z-index: 10 !important;
         }
 
         .message.ai .message-time {
-            color: #9ca3af;
+            color: #9ca3af !important;
         }
 
         .message.user .message-time {
-            color: rgba(255, 255, 255, 0.8);
+            color: rgba(255, 255, 255, 0.8) !important;
         }
 
         /* 특별한 메시지 스타일 */
