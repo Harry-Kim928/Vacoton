@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Mathematical Question Generator Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section h2 {
+            color: #374151;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 10px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-field:focus {
+            border-color: #f093fb;
+        }
+
+        .select-field {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 1rem;
+            outline: none;
+            background: white;
+            cursor: pointer;
+        }
+
+        .generate-btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .generate-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(240, 147, 251, 0.3);
+        }
+
+        .generate-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #f093fb;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            margin-top: 30px;
+        }
+
+        .question-card {
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .question-title {
+            font-weight: 600;
+            color: #374151;
+            font-size: 1.2rem;
+        }
+
+        .question-type {
+            background: #f093fb;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .question-text {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 20px;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            color: #374151;
+        }
+
+        .detail-section {
+            margin-bottom: 15px;
+        }
+
+        .detail-title {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+            font-size: 1rem;
+        }
+
+        .detail-content {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+
+        .detail-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .detail-list li {
+            padding: 5px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .detail-list li:last-child {
+            border-bottom: none;
+        }
+
+        .difficulty-indicators {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .indicator-box {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .indicator-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .surface-indicator {
+            border-left: 4px solid #ef4444;
+        }
+
+        .deep-indicator {
+            border-left: 4px solid #10b981;
+        }
+
+        .follow-up-questions {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .follow-up-title {
+            font-weight: 600;
+            color: #0369a1;
+            margin-bottom: 10px;
+        }
+
+        .follow-up-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .follow-up-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #e0f2fe;
+            color: #0c4a6e;
+        }
+
+        .follow-up-list li:last-child {
+            border-bottom: none;
+        }
+
+        .example-concepts {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .concept-card {
+            background: #f8fafc;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .concept-card:hover {
+            border-color: #f093fb;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .concept-name {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 5px;
+        }
+
+        .concept-level {
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+
+        .error-message {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .success-message {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #16a34a;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+
+            .header {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .difficulty-indicators {
+                grid-template-columns: 1fr;
+            }
+
+            .example-concepts {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧮 Deep Question Generator</h1>
+            <p>Generate concept-driven mathematical questions that test critical thinking</p>
+        </div>
+
+        <div class="content">
+            <!-- API Configuration -->
+            <div class="section">
+                <h2>🔑 API Configuration</h2>
+                <div class="input-group">
+                    <label for="apiKeyInput">OpenAI API Key:</label>
+                    <input type="password" id="apiKeyInput" class="input-field" 
+                           placeholder="sk-...">
+                </div>
+            </div>
+
+            <!-- Question Generation -->
+            <div class="section">
+                <h2>🎯 Generate Question</h2>
+                <div class="input-group">
+                    <label for="conceptInput">Mathematical Concept:</label>
+                    <input type="text" id="conceptInput" class="input-field" 
+                           placeholder="e.g., 미분 가능성, 이차함수의 최댓값, 삼각함수의 기본정리">
+                </div>
+                <div class="input-group">
+                    <label for="levelSelect">Difficulty Level:</label>
+                    <select id="levelSelect" class="select-field">
+                        <option value="Basic">Basic</option>
+                        <option value="Intermediate" selected>Intermediate</option>
+                        <option value="Advanced">Advanced</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="focusInput">Specific Focus (Optional):</label>
+                    <input type="text" id="focusInput" class="input-field" 
+                           placeholder="e.g., 연속성과의 관계, 기하학적 의미">
+                </div>
+                <button onclick="generateQuestion()" class="generate-btn">🚀 Generate Question</button>
+                
+                <div id="loading" class="loading">
+                    <div class="spinner"></div>
+                    <p>Generating deep mathematical question...</p>
+                </div>
+            </div>
+
+            <!-- Example Concepts -->
+            <div class="section">
+                <h2>📚 Example Concepts</h2>
+                <p>Click on any concept to generate a question:</p>
+                <div class="example-concepts">
+                    <div class="concept-card" onclick="loadConcept('미분 가능성', 'Intermediate', '연속성과의 관계')">
+                        <div class="concept-name">미분 가능성</div>
+                        <div class="concept-level">Intermediate</div>
+                    </div>
+                    <div class="concept-card" onclick="loadConcept('이차함수의 최댓값', 'Intermediate', '대칭축과 구간의 관계')">
+                        <div class="concept-name">이차함수의 최댓값</div>
+                        <div class="concept-level">Intermediate</div>
+                    </div>
+                    <div class="concept-card" onclick="loadConcept('삼각함수의 기본정리', 'Basic', '단위원과의 관계')">
+                        <div class="concept-name">삼각함수의 기본정리</div>
+                        <div class="concept-level">Basic</div>
+                    </div>
+                    <div class="concept-card" onclick="loadConcept('극한의 존재성', 'Advanced', '좌극한과 우극한의 관계')">
+                        <div class="concept-name">극한의 존재성</div>
+                        <div class="concept-level">Advanced</div>
+                    </div>
+                    <div class="concept-card" onclick="loadConcept('적분의 기하학적 의미', 'Intermediate', '면적과 부피')">
+                        <div class="concept-name">적분의 기하학적 의미</div>
+                        <div class="concept-level">Intermediate</div>
+                    </div>
+                    <div class="concept-card" onclick="loadConcept('함수의 연속성', 'Basic', '정의와 성질')">
+                        <div class="concept-name">함수의 연속성</div>
+                        <div class="concept-level">Basic</div>
+                    </div>
+                    <div class="concept-card" onclick="loadConcept('급수의 수렴성', 'Advanced', '수렴 판정법')">
+                        <div class="concept-name">급수의 수렴성</div>
+                        <div class="concept-level">Advanced</div>
+                    </div>
+                    <div class="concept-card" onclick="loadConcept('벡터의 내적', 'Intermediate', '기하학적 의미')">
+                        <div class="concept-name">벡터의 내적</div>
+                        <div class="concept-level">Intermediate</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results -->
+            <div id="results" class="results" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script src="question-generator.js"></script>
+    <script>
+        // Load concept into form
+        function loadConcept(concept, level, focus) {
+            document.getElementById('conceptInput').value = concept;
+            document.getElementById('levelSelect').value = level;
+            document.getElementById('focusInput').value = focus;
+            generateQuestion();
+        }
+
+        // Generate question
+        async function generateQuestion() {
+            const apiKey = document.getElementById('apiKeyInput').value.trim();
+            const concept = document.getElementById('conceptInput').value.trim();
+            const level = document.getElementById('levelSelect').value;
+            const focus = document.getElementById('focusInput').value.trim();
+
+            if (!apiKey) {
+                showMessage('Please enter your OpenAI API key', 'error');
+                return;
+            }
+
+            if (!concept) {
+                showMessage('Please enter a mathematical concept', 'error');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+            hideMessage();
+
+            try {
+                const generator = new QuestionGenerator(apiKey);
+                const result = await generator.generateQuestion({
+                    concept: concept,
+                    level: level,
+                    focus: focus,
+                    language: 'ko'
+                });
+
+                displayResult(result);
+                showMessage('Question generated successfully!', 'success');
+
+            } catch (error) {
+                console.error('Question generation failed:', error);
+                showMessage(`Failed to generate question: ${error.message}`, 'error');
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        // Display result
+        function displayResult(result) {
+            const resultsContainer = document.getElementById('results');
+            
+            let html = `
+                <div class="question-card">
+                    <div class="question-header">
+                        <div class="question-title">${result.concept} (${result.level})</div>
+                        <div class="question-type">${result.questionType}</div>
+                    </div>
+                    
+                    <div class="question-text">${result.question}</div>
+                    
+                    <div class="detail-section">
+                        <div class="detail-title">Conceptual Focus:</div>
+                        <div class="detail-content">
+                            <ul class="detail-list">
+                                ${result.conceptualFocus.map(focus => `<li>${focus}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <div class="detail-title">Expected Reasoning:</div>
+                        <div class="detail-content">
+                            <ul class="detail-list">
+                                ${result.expectedReasoning.map(reasoning => `<li>${reasoning}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <div class="detail-title">Difficulty Indicators:</div>
+                        <div class="difficulty-indicators">
+                            <div class="indicator-box surface-indicator">
+                                <div class="indicator-title">Surface Understanding</div>
+                                <div>${result.difficultyIndicators.surface || result.difficultyIndicators.raw || 'Not specified'}</div>
+                            </div>
+                            <div class="indicator-box deep-indicator">
+                                <div class="indicator-title">Deep Understanding</div>
+                                <div>${result.difficultyIndicators.deep || 'Not specified'}</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <div class="detail-title">Follow-up Questions:</div>
+                        <div class="follow-up-questions">
+                            <div class="follow-up-title">Additional Deep Questions:</div>
+                            <ul class="follow-up-list">
+                                ${result.followUpQuestions.map(question => `<li>${question}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            resultsContainer.innerHTML = html;
+            resultsContainer.style.display = 'block';
+        }
+
+        // Show message
+        function showMessage(message, type) {
+            hideMessage();
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type === 'error' ? 'error-message' : 'success-message';
+            messageDiv.textContent = message;
+            
+            document.querySelector('.content').appendChild(messageDiv);
+            
+            // Auto-hide success messages
+            if (type === 'success') {
+                setTimeout(() => {
+                    messageDiv.remove();
+                }, 5000);
+            }
+        }
+
+        // Hide message
+        function hideMessage() {
+            const messages = document.querySelectorAll('.error-message, .success-message');
+            messages.forEach(msg => msg.remove());
+        }
+
+        // Enter key support
+        document.getElementById('conceptInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                generateQuestion();
+            }
+        });
+
+        document.getElementById('focusInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                generateQuestion();
+            }
+        });
+    </script>
+</body>
+</html>

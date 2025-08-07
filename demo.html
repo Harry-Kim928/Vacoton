@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Analyzer Demo - LaTeX & Text Extraction</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .upload-section {
+            border: 3px dashed #e5e7eb;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-section:hover {
+            border-color: #4f46e5;
+            background: #f8fafc;
+        }
+
+        .upload-section.dragover {
+            border-color: #4f46e5;
+            background: #f0f9ff;
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            color: #6b7280;
+        }
+
+        .upload-text {
+            font-size: 1.2rem;
+            color: #374151;
+            margin-bottom: 15px;
+        }
+
+        .upload-hint {
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .api-section {
+            background: #f8fafc;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .api-section h3 {
+            color: #374151;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+
+        .api-input-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .api-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .api-input:focus {
+            border-color: #4f46e5;
+        }
+
+        .api-select {
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 1rem;
+            outline: none;
+            background: white;
+            cursor: pointer;
+        }
+
+        .analyze-btn {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .analyze-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3);
+        }
+
+        .analyze-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #4f46e5;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .result-section {
+            background: #f8fafc;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+
+        .result-section h3 {
+            color: #374151;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .result-content {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .result-content.empty {
+            color: #9ca3af;
+            font-style: italic;
+        }
+
+        .concepts-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .concept-tag {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .concept-tag.high-confidence {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .concept-tag.medium-confidence {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+
+        .concept-tag.low-confidence {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        .error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .success {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #16a34a;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+
+            .header {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .api-input-group {
+                flex-direction: column;
+            }
+
+            .upload-section {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📸 Image Analyzer</h1>
+            <p>Upload images to extract LaTeX math expressions and natural language text</p>
+        </div>
+
+        <div class="content">
+            <!-- API Configuration -->
+            <div class="api-section">
+                <h3>🔑 API Configuration</h3>
+                <div class="api-input-group">
+                    <input type="password" id="apiKeyInput" class="api-input" placeholder="Enter your API key (OpenAI or Mathpix)">
+                    <select id="apiTypeSelect" class="api-select">
+                        <option value="openai">OpenAI Vision</option>
+                        <option value="mathpix">Mathpix OCR</option>
+                    </select>
+                </div>
+                <p style="color: #6b7280; font-size: 0.9rem;">
+                    💡 OpenAI Vision API is recommended for general use. Mathpix is specialized for mathematical notation.
+                </p>
+            </div>
+
+            <!-- Upload Section -->
+            <div class="upload-section" id="uploadSection">
+                <div class="upload-icon">📷</div>
+                <div class="upload-text">Click to upload or drag and drop an image</div>
+                <div class="upload-hint">Supports JPG, PNG, GIF (max 10MB)</div>
+                <input type="file" id="fileInput" class="file-input" accept="image/*">
+            </div>
+
+            <!-- Analyze Button -->
+            <button id="analyzeBtn" class="analyze-btn" disabled>🔍 Analyze Image</button>
+
+            <!-- Loading Indicator -->
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>Analyzing image...</p>
+            </div>
+
+            <!-- Results -->
+            <div id="results" class="results">
+                <div class="result-section">
+                    <h3>📝 Natural Language Text</h3>
+                    <div id="textResult" class="result-content empty">No text extracted</div>
+                </div>
+
+                <div class="result-section">
+                    <h3>🧮 LaTeX Math Expressions</h3>
+                    <div id="latexResult" class="result-content empty">No LaTeX expressions found</div>
+                </div>
+
+                <div class="result-section">
+                    <h3>🏷️ Mathematical Concepts</h3>
+                    <div id="conceptsResult" class="concepts-list">
+                        <span class="concept-tag">No concepts detected</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status Messages -->
+            <div id="statusMessage"></div>
+        </div>
+    </div>
+
+    <script src="image-analyzer.js"></script>
+    <script src="concept-mapper.js"></script>
+    <script>
+        // DOM Elements
+        const uploadSection = document.getElementById('uploadSection');
+        const fileInput = document.getElementById('fileInput');
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        const apiTypeSelect = document.getElementById('apiTypeSelect');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        const textResult = document.getElementById('textResult');
+        const latexResult = document.getElementById('latexResult');
+        const conceptsResult = document.getElementById('conceptsResult');
+        const statusMessage = document.getElementById('statusMessage');
+
+        let selectedFile = null;
+
+        // Event Listeners
+        uploadSection.addEventListener('click', () => fileInput.click());
+        
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        });
+
+        uploadSection.addEventListener('dragleave', () => {
+            uploadSection.classList.remove('dragover');
+        });
+
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileSelect(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        apiKeyInput.addEventListener('input', updateAnalyzeButton);
+        analyzeBtn.addEventListener('click', analyzeImage);
+
+        // File Selection Handler
+        function handleFileSelect(file) {
+            if (!file.type.startsWith('image/')) {
+                showStatus('Please select an image file.', 'error');
+                return;
+            }
+
+            if (file.size > 10 * 1024 * 1024) {
+                showStatus('File size must be less than 10MB.', 'error');
+                return;
+            }
+
+            selectedFile = file;
+            updateUploadSection(file);
+            updateAnalyzeButton();
+            showStatus('Image selected successfully!', 'success');
+        }
+
+        // Update Upload Section
+        function updateUploadSection(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                uploadSection.innerHTML = `
+                    <img src="${e.target.result}" alt="Selected image" style="max-width: 200px; max-height: 200px; border-radius: 10px; margin-bottom: 15px;">
+                    <div class="upload-text">${file.name}</div>
+                    <div class="upload-hint">Click to change image</div>
+                `;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Update Analyze Button
+        function updateAnalyzeButton() {
+            const hasApiKey = apiKeyInput.value.trim().length > 0;
+            const hasFile = selectedFile !== null;
+            analyzeBtn.disabled = !(hasApiKey && hasFile);
+        }
+
+        // Analyze Image
+        async function analyzeImage() {
+            const apiKey = apiKeyInput.value.trim();
+            const useMathpix = apiTypeSelect.value === 'mathpix';
+
+            if (!apiKey || !selectedFile) {
+                showStatus('Please provide an API key and select an image.', 'error');
+                return;
+            }
+
+            // Show loading
+            loading.style.display = 'block';
+            results.style.display = 'none';
+            analyzeBtn.disabled = true;
+            hideStatus();
+
+            try {
+                const result = await analyzeUploadedImage(selectedFile, apiKey, useMathpix);
+                
+                if (result.success) {
+                    displayResults(result.data);
+                    showStatus('Analysis completed successfully!', 'success');
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                console.error('Analysis error:', error);
+                showStatus(`Analysis failed: ${error.message}`, 'error');
+            } finally {
+                loading.style.display = 'none';
+                analyzeBtn.disabled = false;
+                updateAnalyzeButton();
+            }
+        }
+
+        // Display Results
+        function displayResults(data) {
+            // Display text
+            if (data.text && data.text.trim()) {
+                textResult.textContent = data.text;
+                textResult.classList.remove('empty');
+            } else {
+                textResult.textContent = 'No text extracted';
+                textResult.classList.add('empty');
+            }
+
+            // Display LaTeX
+            if (data.latex && data.latex.trim()) {
+                latexResult.textContent = data.latex;
+                latexResult.classList.remove('empty');
+            } else {
+                latexResult.textContent = 'No LaTeX expressions found';
+                latexResult.classList.add('empty');
+            }
+
+            // Display concepts with enhanced information
+            if (data.concepts && data.concepts.length > 0) {
+                let conceptsHtml = '';
+                
+                if (data.conceptDetails) {
+                    // Show detailed concept information with confidence scores
+                    data.conceptDetails.forEach(concept => {
+                        const confidenceClass = concept.confidence >= 0.8 ? 'high-confidence' : 
+                                              concept.confidence >= 0.5 ? 'medium-confidence' : 'low-confidence';
+                        conceptsHtml += `<span class="concept-tag ${confidenceClass}" title="Confidence: ${(concept.confidence * 100).toFixed(1)}%">${concept.concept}</span>`;
+                    });
+                } else {
+                    // Fallback to simple concept display
+                    conceptsHtml = data.concepts
+                        .map(concept => `<span class="concept-tag">${concept}</span>`)
+                        .join('');
+                }
+                
+                conceptsResult.innerHTML = conceptsHtml;
+                
+                // Show overall confidence if available
+                if (data.conceptConfidence) {
+                    const confidenceDiv = document.createElement('div');
+                    confidenceDiv.style.cssText = 'margin-top: 10px; font-size: 0.9rem; color: #6b7280;';
+                    confidenceDiv.textContent = `Overall confidence: ${(data.conceptConfidence * 100).toFixed(1)}%`;
+                    conceptsResult.appendChild(confidenceDiv);
+                }
+            } else {
+                conceptsResult.innerHTML = '<span class="concept-tag">No concepts detected</span>';
+            }
+
+            results.style.display = 'block';
+        }
+
+        // Status Message Functions
+        function showStatus(message, type) {
+            statusMessage.innerHTML = `<div class="${type}">${message}</div>`;
+            statusMessage.style.display = 'block';
+        }
+
+        function hideStatus() {
+            statusMessage.style.display = 'none';
+        }
+
+        // Initialize
+        updateAnalyzeButton();
+    </script>
+</body>
+</html>
