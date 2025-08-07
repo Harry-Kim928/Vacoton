@@ -5,9 +5,17 @@
   "main": "index.html",
   "scripts": {
     "start": "serve .",
-    "build": "echo 'No build step required for static site'"
+    "build": "echo 'No build step required for static site'",
+    "test": "node test-example.js"
   },
-  "keywords": ["avatar", "analyzer", "education", "korean", "vercel"],
+  "keywords": ["avatar", "analyzer", "education", "korean", "vercel", "latex", "ocr", "math", "image-analysis"],
   "author": "Harry Kim",
-  "license": "MIT"
+  "license": "MIT",
+  "files": [
+    "index.html",
+    "image-analyzer.js",
+    "demo.html",
+    "test-example.js",
+    "README.md"
+  ]
 }
