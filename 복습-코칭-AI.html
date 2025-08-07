@@ -697,6 +697,69 @@
         }
 
         /* API 키 설정 모달 */
+        .api-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .api-modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 400px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .api-key-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 15px;
+            outline: none;
+            margin-bottom: 16px;
+            font-family: inherit;
+        }
+
+        .api-key-input:focus {
+            border-color: #4f46e5;
+        }
+
+        .api-input-group {
+            margin-bottom: 20px;
+        }
+
+        .api-modal-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .api-save-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+            background: #4f46e5;
+            color: white;
+        }
+
+        .api-save-btn:hover {
+            background: #4338ca;
+        }
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -873,7 +936,23 @@
         </div>
     </div>
 
-    <!-- API 키 설정 모달 - 제거됨 -->
+    <!-- API 키 설정 모달 -->
+    <div id="apiModal" class="api-modal">
+        <div class="api-modal-content">
+            <h2 class="modal-title">🔑 OpenAI API 키 설정</h2>
+            <p class="modal-description">
+                Vision AI 이미지 분석을 위해 OpenAI API 키가 필요합니다.<br>
+                <small>API 키는 브라우저에만 저장되며 외부로 전송되지 않습니다.</small>
+            </p>
+            <div class="api-input-group">
+                <input type="password" id="apiKeyInput" placeholder="sk-..." class="api-key-input">
+                <div id="apiKeyError" class="error-message"></div>
+            </div>
+            <div class="api-modal-buttons">
+                <button onclick="handleApiKeySave()" class="api-save-btn">시작하기</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         // OpenAI 클라이언트 래퍼 클래스
@@ -907,8 +986,8 @@
         }
 
         // 전역 변수
-        let apiKey = 'YOUR_API_KEY_HERE'; // API 키를 여기에 입력하세요
-        let openai = new OpenAIClient('YOUR_API_KEY_HERE'); // API 키를 여기에 입력하세요
+        let apiKey = null; // API 키
+        let openai = null; // OpenAI 클라이언트
         let questions = [];
         let currentQuestionIndex = 0;
         let userConcept = '';
@@ -942,8 +1021,8 @@
             return `${ampm} ${displayHours}:${minutes.toString().padStart(2, '0')}`;
         }
 
-        // 메시지 추가 함수
-        function addMessage(content, isUser = false, isSystem = false, isBackend = false) {
+        // 메시지 추가 함수 (전역 함수)
+        window.addMessage = function(content, isUser = false, isSystem = false, isBackend = false) {
             const messageDiv = document.createElement('div');
             
             if (isSystem) {
@@ -1051,10 +1130,52 @@
             }
         }
 
-        // API 키 설정 - 제거됨 (기본값으로 설정됨)
+        // API 키 저장 및 로드 함수들
+        function saveApiKey(key) {
+            localStorage.setItem('openai_api_key', key);
+        }
 
-        // 환영 메시지 추가
-        function addWelcomeMessages() {
+        function loadApiKey() {
+            return localStorage.getItem('openai_api_key');
+        }
+
+        // API 키 모달 표시/숨김 함수들
+        function showApiModal() {
+            document.getElementById('apiModal').style.display = 'flex';
+        }
+
+        function hideApiModal() {
+            document.getElementById('apiModal').style.display = 'none';
+        }
+
+        // API 키 저장 처리 함수
+        function handleApiKeySave() {
+            const keyInput = document.getElementById('apiKeyInput');
+            const key = keyInput.value.trim();
+            
+            if (!key) {
+                alert('API 키를 입력해주세요.');
+                return;
+            }
+            
+            apiKey = key;
+            openai = new OpenAIClient(key);
+            saveApiKey(key);
+            hideApiModal();
+            
+            // API 키 설정 후 환영 메시지 추가
+            if (chatMessages.children.length === 0) {
+                addWelcomeMessages();
+            }
+        }
+
+        // 전역 함수로 등록
+        window.handleApiKeySave = handleApiKeySave;
+        window.showApiModal = showApiModal;
+        window.hideApiModal = hideApiModal;
+
+        // 환영 메시지 추가 (전역 함수)
+        window.addWelcomeMessages = function() {
             addMessage('문제 사진을 업로드해주세요 📷', false, false, true);
             currentPhase = 'setup';
         }
@@ -1066,6 +1187,12 @@
             
             const message = chatInput.value.trim();
             if (!message || isOCRProcessing) return;
+            
+            // API 키 체크
+            if (!apiKey || !openai) {
+                showApiModal();
+                return;
+            }
             
             // 사진이 업로드되지 않은 경우 텍스트 입력 차단
             if (!hasImageUploaded) {
@@ -1355,8 +1482,8 @@ AI:
             finishLearningBtn.disabled = false;
         }
 
-        // 이미지 업로드 처리
-        function handleImageUpload(file) {
+        // 이미지 업로드 처리 (전역 함수)
+        window.handleImageUpload = function(file) {
             if (!file || !file.type.startsWith('image/')) {
                 addMessage('이미지 파일만 올릴 수 있습니다! 📷', false);
                 return;
@@ -1378,13 +1505,14 @@ AI:
                     addMessage(imagePreview + '사진을 올려주셨네요! AI가 이미지를 분석해보겠습니다...', true);
                     hasImageUploaded = true; // 사진 업로드 완료 표시
                     
-                    // API 키가 있으면 Vision API로 분석
-                    if (apiKey) {
-                        analyzeImageConcept(file);
-                    } else {
-                        addMessage('AI 이미지 분석을 위해 먼저 API 키를 설정해주세요! 🔑');
-                        performOCR(file);
-                    }
+                                         // API 키 체크
+                     if (!apiKey || !openai) {
+                         showApiModal();
+                         return;
+                     }
+                     
+                     // Vision API로 분석
+                     analyzeImageConcept(file);
                 } else {
                     // 이후 업로드: 학생 풀이 분석
                     addMessage(imagePreview + '풀이 사진을 올려주셨네요! AI가 풀이를 분석해보겠습니다...', true);
@@ -2089,8 +2217,16 @@ AI:
 
         // 이벤트 리스너 설정
         document.addEventListener('DOMContentLoaded', function() {
-            // API 키가 이미 설정되어 있으므로 바로 환영 메시지 추가
-            addWelcomeMessages();
+            // 저장된 API 키 확인
+            const savedApiKey = loadApiKey();
+            if (savedApiKey) {
+                apiKey = savedApiKey;
+                openai = new OpenAIClient(savedApiKey);
+                addWelcomeMessages();
+            } else {
+                // API 키가 없으면 모달 표시
+                showApiModal();
+            }
 
             // 초기 상태 설정
             updateQuestionCounter();
@@ -2138,7 +2274,12 @@ AI:
                 }
             });
 
-            // API 키 입력 이벤트 리스너 제거됨
+            // API 키 입력에서 엔터 키
+            document.getElementById('apiKeyInput').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    handleApiKeySave();
+                }
+            });
 
             // 다음 질문 버튼 클릭 이벤트
             nextQuestionBtn.addEventListener('click', function() {
