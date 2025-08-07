@@ -4,12 +4,20 @@
     {
       "src": "복습-코칭-AI.html",
       "use": "@vercel/static"
+    },
+    {
+      "src": "ai-tutor-profile.png",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
     {
       "src": "/",
       "dest": "/복습-코칭-AI.html"
+    },
+    {
+      "src": "/ai-tutor-profile.png",
+      "dest": "/ai-tutor-profile.png"
     },
     {
       "src": "/(.*)",
