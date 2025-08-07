@@ -471,20 +471,143 @@
 
         /* 반응형 디자인 */
         @media (max-width: 768px) {
+            /* 헤더 최적화 */
+            .chat-header {
+                padding: 10px 12px;
+            }
+            
+            .chat-header h1 {
+                font-size: 16px;
+            }
+            
+            .tutor-profile {
+                width: 32px;
+                height: 32px;
+                font-size: 16px;
+            }
+            
+            /* 채팅 메시지 최적화 */
+            .chat-messages {
+                padding: 12px;
+            }
+            
+            .message {
+                margin-bottom: 16px;
+            }
+            
+            .message-bubble {
+                max-width: 80%;
+                padding: 10px 14px;
+                font-size: 14px;
+                line-height: 1.3;
+            }
+            
+            /* 아바타 크기 최적화 */
+            .message.ai .avatar {
+                width: 28px;
+                height: 28px;
+                font-size: 12px;
+                margin-right: 8px;
+            }
+            
+            .message.user .avatar {
+                width: 28px;
+                height: 28px;
+                font-size: 12px;
+                margin-left: 8px;
+            }
+            
+            /* 시간 표시 최적화 */
+            .message-time {
+                font-size: 10px;
+                margin-top: 3px;
+            }
+            
+            .message.ai .message-time {
+                margin-left: 36px;
+            }
+            
+            .message.user .message-time {
+                margin-right: 36px;
+            }
+            
+            /* 입력창 최적화 */
+            .chat-input-container {
+                padding: 10px 12px;
+            }
+            
+            .chat-input {
+                padding: 10px 45px 10px 14px;
+                font-size: 14px;
+                min-height: 40px;
+            }
+            
+            .input-button {
+                width: 28px;
+                height: 28px;
+                font-size: 12px;
+            }
+            
+            /* 시스템 메시지 최적화 */
+            .system-message .message-bubble {
+                font-size: 12px;
+                padding: 6px 12px;
+            }
+            
+            /* 이미지 미리보기 최적화 */
+            .image-preview-message {
+                max-width: 250px;
+            }
+            
+            /* 학습 마치기 버튼 최적화 */
+            .finish-learning-container {
+                padding: 12px 15px;
+            }
+            
+            .finish-learning-btn {
+                padding: 10px 20px;
+                font-size: 14px;
+            }
+        }
+        
+        /* 작은 모바일 화면 추가 최적화 */
+        @media (max-width: 480px) {
             .message-bubble {
                 max-width: 85%;
+                padding: 8px 12px;
+                font-size: 13px;
             }
             
-            .chat-header {
-                padding: 12px 15px;
+            .chat-header h1 {
+                font-size: 15px;
             }
             
-            .chat-messages {
-                padding: 15px;
+            .tutor-profile {
+                width: 28px;
+                height: 28px;
+                font-size: 14px;
             }
             
-            .chat-input-container {
-                padding: 12px 15px;
+            .message.ai .avatar {
+                width: 24px;
+                height: 24px;
+                font-size: 10px;
+                margin-right: 6px;
+            }
+            
+            .message.user .avatar {
+                width: 24px;
+                height: 24px;
+                font-size: 10px;
+                margin-left: 6px;
+            }
+            
+            .message.ai .message-time {
+                margin-left: 30px;
+            }
+            
+            .message.user .message-time {
+                margin-right: 30px;
             }
         }
 
@@ -1460,7 +1583,7 @@ AI:
                     }, 1000);
                 } else {
                     addMessage('❌ 풀이를 인식할 수 없습니다. 📷');
-                    addMessage('풀이 사진을 잘 인식하기 어려운 경우에는 인식이 어려워요. 문자 텍스트로 설명해주세요.');
+                    addMessage('더 선명한 풀이 사진을 다시 올려주세요! ✍️');
                     
                     // 이미지 미리보기 제거
                     const imagePreviewMessages = document.querySelectorAll('.image-preview-message');
@@ -1471,7 +1594,7 @@ AI:
                 removeTypingIndicator();
                 console.error('Student Solution OCR Error:', error);
                 addMessage('❌ 풀이를 인식할 수 없습니다. 📷');
-                addMessage('풀이 사진을 잘 인식하기 어려운 경우에는 인식이 어려워요. 문자 텍스트로 설명해주세요.');
+                addMessage('더 선명한 풀이 사진을 다시 올려주세요! ✍️');
                 
                 // 이미지 미리보기 제거
                 const imagePreviewMessages = document.querySelectorAll('.image-preview-message');
